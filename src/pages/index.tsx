@@ -1,14 +1,13 @@
 import { Alert, Button, Group, InputWrapper, Stack, Textarea } from "@mantine/core"
 import { useForm } from "@mantine/hooks"
 import { Prism } from "@mantine/prism"
-import { arrayify, hashMessage, recoverPublicKey } from "ethers/lib/utils"
+import { hashMessage, recoverPublicKey } from "ethers/lib/utils"
 import type { NextPage } from "next"
-import { useState } from "react"
+import { useMemo } from "react"
 import { useConnect, useSignMessage } from "wagmi"
 
 const Home: NextPage = () => {
   const { isConnected } = useConnect()
-  const [signedMessage, setSignedMessage] = useState<string>("")
 
   const { signMessage, data, variables, isLoading } = useSignMessage()
 
@@ -17,6 +16,19 @@ const Home: NextPage = () => {
       message: "",
     },
   })
+
+  const jsonData = useMemo(() => {
+    if (!variables || !data) return
+
+    const hashMsg = hashMessage(variables.message)
+
+    return {
+      message: variables.message,
+      hashMessage: hashMsg,
+      signature: data,
+      publicKey: recoverPublicKey(hashMsg, data),
+    }
+  }, [variables, data])
 
   if (!isConnected) {
     return (
@@ -28,12 +40,7 @@ const Home: NextPage = () => {
 
   return (
     <Stack>
-      <form
-        onSubmit={form.onSubmit(({ message }) => {
-          setSignedMessage(message)
-          signMessage({ message: hashMessage(message) })
-        })}
-      >
+      <form onSubmit={form.onSubmit(signMessage)}>
         <InputWrapper label="Message">
           <Textarea {...form.getInputProps("message")} />
         </InputWrapper>
@@ -45,20 +52,7 @@ const Home: NextPage = () => {
         </Group>
       </form>
 
-      {data && (
-        <Prism language="json">
-          {JSON.stringify(
-            {
-              message: signedMessage,
-              hashMessage: variables.message,
-              signature: data,
-              publicKey: recoverPublicKey(arrayify(variables.message), data),
-            },
-            null,
-            2
-          )}
-        </Prism>
-      )}
+      {data && <Prism language="json">{JSON.stringify(jsonData, null, 2)}</Prism>}
     </Stack>
   )
 }
