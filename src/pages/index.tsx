@@ -3,10 +3,12 @@ import { useForm } from "@mantine/hooks"
 import { Prism } from "@mantine/prism"
 import { arrayify, hashMessage, recoverPublicKey } from "ethers/lib/utils"
 import type { NextPage } from "next"
+import { useState } from "react"
 import { useConnect, useSignMessage } from "wagmi"
 
 const Home: NextPage = () => {
   const { isConnected } = useConnect()
+  const [signedMessage, setSignedMessage] = useState<string>("")
 
   const { signMessage, data, variables, isLoading } = useSignMessage()
 
@@ -27,9 +29,10 @@ const Home: NextPage = () => {
   return (
     <Stack>
       <form
-        onSubmit={form.onSubmit(({ message }) =>
+        onSubmit={form.onSubmit(({ message }) => {
+          setSignedMessage(message)
           signMessage({ message: hashMessage(message) })
-        )}
+        })}
       >
         <InputWrapper label="Message">
           <Textarea {...form.getInputProps("message")} />
@@ -46,13 +49,10 @@ const Home: NextPage = () => {
         <Prism language="json">
           {JSON.stringify(
             {
-              message: variables.message,
-              hashMessage: hashMessage(variables.message),
+              message: signedMessage,
+              hashMessage: variables.message,
               signature: data,
-              publicKey: recoverPublicKey(
-                arrayify(hashMessage(variables.message)),
-                data
-              ),
+              publicKey: recoverPublicKey(arrayify(variables.message), data),
             },
             null,
             2
