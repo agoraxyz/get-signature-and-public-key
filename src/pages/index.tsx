@@ -3,7 +3,7 @@ import { useForm } from "@mantine/hooks"
 import { Prism } from "@mantine/prism"
 import { hashMessage, recoverPublicKey } from "ethers/lib/utils"
 import type { NextPage } from "next"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useConnect, useSignMessage } from "wagmi"
 
 const Home: NextPage = () => {
@@ -17,18 +17,18 @@ const Home: NextPage = () => {
     },
   })
 
-  const jsonData = useMemo(() => {
-    if (!variables || !data) return
+  const [signedMessage, setSignedMessage] = useState<string>("")
 
-    const hashMsg = hashMessage(variables.message)
+  const jsonData = useMemo(() => {
+    if (!variables || !data) return undefined
 
     return {
-      message: variables.message,
-      hashMessage: hashMsg,
+      message: signedMessage,
+      hashMessage: variables.message,
       signature: data,
-      publicKey: recoverPublicKey(hashMsg, data),
+      publicKey: recoverPublicKey(variables.message, data),
     }
-  }, [variables, data])
+  }, [variables, data, signedMessage])
 
   if (!isConnected) {
     return (
@@ -40,19 +40,26 @@ const Home: NextPage = () => {
 
   return (
     <Stack>
-      <form onSubmit={form.onSubmit(signMessage)}>
+      <form
+        onSubmit={form.onSubmit(({ message }) => {
+          setSignedMessage(message)
+          signMessage({ message: hashMessage(message) })
+        })}
+      >
         <InputWrapper label="Message">
           <Textarea {...form.getInputProps("message")} />
         </InputWrapper>
 
         <Group position="right" mt="md">
           <Button loading={isLoading} type="submit">
-            Submit
+            Sign
           </Button>
         </Group>
       </form>
 
-      {data && <Prism language="json">{JSON.stringify(jsonData, null, 2)}</Prism>}
+      {jsonData && (
+        <Prism language="json">{JSON.stringify(jsonData, null, 2)}</Prism>
+      )}
     </Stack>
   )
 }
