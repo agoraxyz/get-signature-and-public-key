@@ -4,9 +4,10 @@ import { Prism } from "@mantine/prism"
 import { hashMessage, recoverPublicKey } from "ethers/lib/utils"
 import type { NextPage } from "next"
 import { useMemo, useState } from "react"
-import { useConnect, useSignMessage } from "wagmi"
+import { useAccount, useConnect, useSignMessage } from "wagmi"
 
 const Home: NextPage = () => {
+  const { data: account } = useAccount()
   const { isConnected } = useConnect()
 
   const { signMessage, data, variables, isLoading } = useSignMessage()
@@ -27,8 +28,9 @@ const Home: NextPage = () => {
       hashMessage: variables.message,
       signature: data,
       publicKey: recoverPublicKey(variables.message, data),
+      address: account.address || "",
     }
-  }, [variables, data, signedMessage])
+  }, [variables, data, signedMessage, account])
 
   if (!isConnected) {
     return (
