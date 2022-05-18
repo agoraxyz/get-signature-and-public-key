@@ -1,12 +1,6 @@
 import { Alert, Button, Stack } from "@mantine/core"
 import { Prism } from "@mantine/prism"
 import { randomBytes } from "crypto"
-import {
-  commitAddress,
-  generatePedersenParameters,
-  generateProof,
-  verifyProof,
-} from "dummy-wasm"
 import { hashMessage, recoverPublicKey } from "ethers/lib/utils"
 import useSubmit from "hooks/useSubmit"
 import type { NextPage } from "next"
@@ -46,25 +40,37 @@ const Home: NextPage = () => {
     onSubmit: onGenerate,
     isLoading: isGenerating,
     response: generated,
-  } = useSubmit(() => generatePedersenParameters())
+  } = useSubmit(async () => {
+    const { generatePedersenParameters } = await import("../dummy-wasm")
+    return generatePedersenParameters()
+  })
 
   const {
     onSubmit: onCommit,
     isLoading: isCommiting,
     response: commitment,
-  } = useSubmit<any, any>(() => commitAddress(generated, account.address))
+  } = useSubmit<any, any>(async () => {
+    const { commitAddress } = await import("../dummy-wasm")
+    return commitAddress(generated, account.address)
+  })
 
   const {
     onSubmit: onGenerateProof,
     isLoading: isGeneratingProof,
     response: proof,
-  } = useSubmit<any, any>(() => generateProof(generated, commitment, proofInput))
+  } = useSubmit<any, any>(async () => {
+    const { generateProof } = await import("../dummy-wasm")
+    return generateProof(generated, commitment, proofInput)
+  })
 
   const {
     onSubmit: onVerify,
     isLoading: isVerifying,
     response: verifyResult,
-  } = useSubmit<any, any>(() => verifyProof(proof))
+  } = useSubmit<any, any>(async () => {
+    const { verifyProof } = await import("../dummy-wasm")
+    return verifyProof(proof)
+  })
 
   if (!isConnected) {
     return (
