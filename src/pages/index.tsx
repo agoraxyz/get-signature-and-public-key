@@ -1,36 +1,70 @@
-import { Alert, Button, Group, InputWrapper, Stack, Textarea } from "@mantine/core"
-import { useForm } from "@mantine/hooks"
+import { Alert, Button, Stack } from "@mantine/core"
 import { Prism } from "@mantine/prism"
+import { randomBytes } from "crypto"
+import {
+  commitAddress,
+  generatePedersenParameters,
+  generateProof,
+  verifyProof,
+} from "dummy-wasm"
 import { hashMessage, recoverPublicKey } from "ethers/lib/utils"
+import useSubmit from "hooks/useSubmit"
 import type { NextPage } from "next"
 import { useMemo, useState } from "react"
 import { useAccount, useConnect, useSignMessage } from "wagmi"
 
+const getRandomAddresses = (ourAddress: string) => {
+  const ourIndex = Math.floor(Math.random() * 5)
+  return {
+    ring: [...new Array(6)].map((_, i) =>
+      i === ourIndex ? ourAddress : `0x${randomBytes(20).toString("hex")}`
+    ),
+    ourIndex,
+  }
+}
+
 const Home: NextPage = () => {
   const { data: account } = useAccount()
+  const { signMessage, data: signature, isLoading, variables } = useSignMessage()
   const { isConnected } = useConnect()
 
-  const { signMessage, data, variables, isLoading } = useSignMessage()
+  const [randomAddresses, setRandomAddresses] = useState(null)
 
-  const form = useForm({
-    initialValues: {
-      message: "",
-    },
-  })
-
-  const [signedMessage, setSignedMessage] = useState<string>("")
-
-  const jsonData = useMemo(() => {
-    if (!variables || !data) return undefined
+  const proofInput = useMemo(() => {
+    if (!variables || !randomAddresses) return null
 
     return {
-      message: signedMessage,
-      hashMessage: variables.message,
-      signature: data,
-      publicKey: recoverPublicKey(variables.message, data),
-      address: account.address || "",
+      msgHash: variables.message,
+      pubKey: recoverPublicKey(variables.message, signature),
+      signature,
+      index: randomAddresses.ourIndex,
+      ring: randomAddresses.ring,
     }
-  }, [variables, data, signedMessage, account])
+  }, [randomAddresses, signature, variables])
+
+  const {
+    onSubmit: onGenerate,
+    isLoading: isGenerating,
+    response: generated,
+  } = useSubmit(() => generatePedersenParameters())
+
+  const {
+    onSubmit: onCommit,
+    isLoading: isCommiting,
+    response: commitment,
+  } = useSubmit<any, any>(() => commitAddress(generated, account.address))
+
+  const {
+    onSubmit: onGenerateProof,
+    isLoading: isGeneratingProof,
+    response: proof,
+  } = useSubmit<any, any>(() => generateProof(generated, commitment, proofInput))
+
+  const {
+    onSubmit: onVerify,
+    isLoading: isVerifying,
+    response: verifyResult,
+  } = useSubmit<any, any>(() => verifyProof(proof))
 
   if (!isConnected) {
     return (
@@ -42,25 +76,100 @@ const Home: NextPage = () => {
 
   return (
     <Stack>
-      <form
-        onSubmit={form.onSubmit(({ message }) => {
-          setSignedMessage(message)
-          signMessage({ message: hashMessage(message) })
-        })}
+      <Button
+        style={{ width: "min-content" }}
+        loading={isGenerating}
+        onClick={onGenerate}
       >
-        <InputWrapper label="Message">
-          <Textarea {...form.getInputProps("message")} />
-        </InputWrapper>
+        Generate Pedersen parameters
+      </Button>
+      {!!generated && (
+        <>
+          <Prism language="json">{JSON.stringify(generated, null, 2)}</Prism>
 
-        <Group position="right" mt="md">
-          <Button loading={isLoading} type="submit">
-            Sign
+          <Button
+            style={{ width: "min-content" }}
+            loading={isCommiting}
+            onClick={onCommit}
+          >
+            Commit address
           </Button>
-        </Group>
-      </form>
 
-      {jsonData && (
-        <Prism language="json">{JSON.stringify(jsonData, null, 2)}</Prism>
+          {!!commitment && (
+            <>
+              <Prism language="json">{JSON.stringify(commitment, null, 2)}</Prism>
+
+              <Button
+                style={{ width: "min-content" }}
+                loading={isLoading}
+                onClick={() =>
+                  signMessage({
+                    message: hashMessage(
+                      `${commitment.commitment.x}${commitment.commitment.y}${commitment.commitment.z}`
+                    ),
+                  })
+                }
+              >
+                Sign
+              </Button>
+
+              {!!signature && (
+                <>
+                  <Prism language="json">
+                    {JSON.stringify({ signature }, null, 2)}
+                  </Prism>
+
+                  <Button
+                    style={{ width: "min-content" }}
+                    onClick={() => {
+                      setRandomAddresses(getRandomAddresses(account.address))
+                    }}
+                  >
+                    Generate proof input
+                  </Button>
+
+                  {!!proofInput && (
+                    <>
+                      <Prism language="json">
+                        {JSON.stringify(proofInput, null, 2)}
+                      </Prism>
+
+                      <Button
+                        style={{ width: "min-content" }}
+                        loading={isGeneratingProof}
+                        onClick={onGenerateProof}
+                      >
+                        Generate proof
+                      </Button>
+
+                      {!!proof && (
+                        <>
+                          <Prism language="json">
+                            {JSON.stringify({ proof }, null, 2)}
+                          </Prism>
+
+                          <Button
+                            style={{ width: "min-content" }}
+                            loading={isVerifying}
+                            onClick={onVerify}
+                          >
+                            Verify proof
+                          </Button>
+
+                          {!!verifyResult && (
+                            <Prism language="json">
+                              {JSON.stringify({ verifyResult }, null, 2)}
+                            </Prism>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </>
       )}
     </Stack>
   )
