@@ -16,7 +16,7 @@ const useGenerateProof = () => {
 
   useEffect(() => () => worker?.terminate(), [worker])
 
-  return () => {
+  return (ring: string[]) => {
     let messageListener = null
     let errorListener = null
 
@@ -38,7 +38,10 @@ const useGenerateProof = () => {
       worker.addEventListener("message", messageListener)
       worker.addEventListener("error", errorListener)
 
-      worker.postMessage({ type: "proofrequest", data: accountData.address })
+      worker.postMessage({
+        type: "proofrequest",
+        data: { address: accountData.address, ring },
+      })
     }).finally(() => {
       worker.removeEventListener("message", messageListener)
       worker.removeEventListener("error", errorListener)

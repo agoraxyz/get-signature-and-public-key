@@ -21,9 +21,11 @@ const getRing = (ourAddress: string) => {
 addEventListener("message", (event) => {
   if (event.data.type !== "proofrequest") return
 
-  const address = event.data.data
+  const { address, ring } = event.data.data as { address: string; ring: string[] }
 
-  console.log("worker: recieved address:", address)
+  const index = ring.findIndex((ringItem) => ringItem === address)
+
+  console.log("worker: inputs:", { address, ring, index })
 
   import("../../zk-wasm").then(
     async ({ commitAddress, generatePedersenParameters, generateProof }) => {
@@ -61,10 +63,6 @@ addEventListener("message", (event) => {
       if (signature === undefined) return
 
       console.log("worker: signature:", signature)
-
-      const { index, ring } = getRing(address)
-      console.log("worker: ring:", ring)
-      console.log("worker: index:", index)
 
       const proofInput = {
         msgHash,
