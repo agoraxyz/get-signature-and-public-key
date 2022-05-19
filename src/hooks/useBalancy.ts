@@ -128,7 +128,7 @@ const useBalancy = (requirements, logic) => {
   }, [data, renderedRequirements])
 
   return {
-    addresses: holders?.addresses?.map((address) => address.toLowerCase()),
+    addresses: holders?.addresses,
     holders: holders?.count,
     usedLogic: holders?.usedLogic, // So we always display "at least", and "at most" according to the logic, we used to fetch holders
     isLoading: isValidating,

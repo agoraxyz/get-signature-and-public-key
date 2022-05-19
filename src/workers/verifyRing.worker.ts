@@ -8,7 +8,7 @@ addEventListener("message", (event) => {
 
   console.log("worker: inputs:", { balancyRing, proofRing })
 
-  const balancyRingSet = new Set(balancyRing)
+  const balancyRingSet = new Set(balancyRing.map((address) => address.toLowerCase()))
 
   const isValid = proofRing.every((proofRingItem) =>
     balancyRingSet.has(
