@@ -6,6 +6,12 @@ import useSubmit from "hooks/useSubmit"
 import type { NextPage } from "next"
 import { useMemo, useState } from "react"
 import { useAccount, useConnect, useSignMessage } from "wagmi"
+import {
+  commitAddress,
+  generatePedersenParameters,
+  generateProof,
+  verifyProof,
+} from "../../zk-wasm"
 
 const getRandomAddresses = (ourAddress: string) => {
   const ourIndex = Math.floor(Math.random() * 5)
@@ -29,7 +35,7 @@ const Home: NextPage = () => {
 
     return {
       msgHash: variables.message,
-      pubKey: recoverPublicKey(variables.message, signature),
+      pubkey: recoverPublicKey(variables.message, signature),
       signature,
       index: randomAddresses.ourIndex,
       ring: randomAddresses.ring,
@@ -40,37 +46,25 @@ const Home: NextPage = () => {
     onSubmit: onGenerate,
     isLoading: isGenerating,
     response: generated,
-  } = useSubmit(async () => {
-    const { generatePedersenParameters } = await import("../dummy-wasm")
-    return generatePedersenParameters()
-  })
+  } = useSubmit(async () => generatePedersenParameters())
 
   const {
     onSubmit: onCommit,
     isLoading: isCommiting,
     response: commitment,
-  } = useSubmit<any, any>(async () => {
-    const { commitAddress } = await import("../dummy-wasm")
-    return commitAddress(generated, account.address)
-  })
+  } = useSubmit<any, any>(async () => commitAddress(account.address, generated))
 
   const {
     onSubmit: onGenerateProof,
     isLoading: isGeneratingProof,
     response: proof,
-  } = useSubmit<any, any>(async () => {
-    const { generateProof } = await import("../dummy-wasm")
-    return generateProof(generated, commitment, proofInput)
-  })
+  } = useSubmit(async () => generateProof(proofInput, commitment, generated))
 
   const {
     onSubmit: onVerify,
     isLoading: isVerifying,
     response: verifyResult,
-  } = useSubmit<any, any>(async () => {
-    const { verifyProof } = await import("../dummy-wasm")
-    return verifyProof(proof)
-  })
+  } = useSubmit(async () => verifyProof(proof))
 
   if (!isConnected) {
     return (
@@ -151,7 +145,7 @@ const Home: NextPage = () => {
                       {!!proof && (
                         <>
                           <Prism language="json">
-                            {JSON.stringify({ proof }, null, 2)}
+                            {JSON.stringify(proof, null, 2)}
                           </Prism>
 
                           <Button
