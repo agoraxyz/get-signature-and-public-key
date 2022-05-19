@@ -20,8 +20,9 @@ import useBalancy from "hooks/useBalancy"
 import useGenerateProof from "hooks/useGenerateProof"
 import useSubmit from "hooks/useSubmit"
 import useVerifyProof from "hooks/useVerifyProof"
+import useVerifyRing from "hooks/useVerifyRing"
 import { Check, X } from "phosphor-react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import fetcher from "utils/fetcher"
 import { useAccount, useConnect, useProvider } from "wagmi"
 import ERC20_ABI from "../static/erc20abi.json"
@@ -130,10 +131,30 @@ const DemoPage = () => {
     },
   })
 
-  useEffect(() => {
-    if (!proof) return
-    console.log("Proof:", proof)
-  }, [proof])
+  const verifyRing = useVerifyRing()
+
+  const {
+    onSubmit: onVerifyRingSubmit,
+    isLoading: isVerifyRingLoading,
+    response: verifyRingResult,
+  } = useSubmit(() => verifyRing(addresses, proof.ring), {
+    onError: () => {
+      showNotification({
+        color: "red",
+        title: "Error",
+        message: "Falied to verify ring",
+        autoClose: 2000,
+      })
+    },
+    onSuccess: () => {
+      showNotification({
+        color: "green",
+        title: "Success",
+        message: "Ring verification successful",
+        autoClose: 2000,
+      })
+    },
+  })
 
   if (!isConnected) {
     return (
@@ -233,6 +254,29 @@ const DemoPage = () => {
                 sx={{ borderRadius: "100%" }}
               >
                 {(verifyResult && <Check />) || <X />}
+              </ThemeIcon>
+            )}
+          </Group>
+
+          <Group>
+            <Button
+              sx={{ width: "min-content" }}
+              loading={isVerifyRingLoading}
+              onClick={onVerifyRingSubmit}
+              size="xs"
+              variant="outline"
+            >
+              {(isVerifyRingLoading && "Verifying") || "Verify ring"}
+            </Button>
+
+            {typeof verifyRingResult === "boolean" && !isVerifyRingLoading && (
+              <ThemeIcon
+                color={(verifyRingResult && "green") || "red"}
+                variant="light"
+                size="lg"
+                sx={{ borderRadius: "100%" }}
+              >
+                {(verifyRingResult && <Check />) || <X />}
               </ThemeIcon>
             )}
           </Group>

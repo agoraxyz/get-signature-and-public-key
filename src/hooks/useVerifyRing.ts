@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react"
 
-const useVerifyProof = () => {
+const useVerifyRing = () => {
   const [worker, setWorker] = useState<Worker>(null)
 
   useEffect(() => {
     if (typeof window === "undefined") return
     setWorker(
-      new Worker(new URL(`../workers/verifyProof.worker.ts`, import.meta.url))
+      new Worker(new URL(`../workers/verifyRing.worker.ts`, import.meta.url))
     )
   }, [])
 
   useEffect(() => () => worker?.terminate(), [worker])
 
-  return (proof) => {
+  return (balancyRing: string[], proofRing: []) => {
     let messageListener = null
     let errorListener = null
 
@@ -27,7 +27,7 @@ const useVerifyProof = () => {
       worker.addEventListener("message", messageListener)
       worker.addEventListener("error", errorListener)
 
-      worker.postMessage({ type: "verifyrequest", data: { proof } })
+      worker.postMessage({ type: "verifyrequest", data: { balancyRing, proofRing } })
     }).finally(() => {
       worker.removeEventListener("message", messageListener)
       worker.removeEventListener("error", errorListener)
@@ -35,4 +35,4 @@ const useVerifyProof = () => {
   }
 }
 
-export default useVerifyProof
+export default useVerifyRing
