@@ -11,11 +11,8 @@ addEventListener("message", (event) => {
       const verifyResult = verifyProof(proof)
       console.log("worker: verifyResult:", verifyResult)
       postMessage({ type: "verifyresult", data: verifyResult })
-    } catch {
-      console.log(
-        "worker: verifyResult thrown an exception, sending verifyResult:",
-        false
-      )
+    } catch (error) {
+      console.log("worker: verifyResult error:", error)
       postMessage({ type: "verifyresult", data: false })
     }
   })
