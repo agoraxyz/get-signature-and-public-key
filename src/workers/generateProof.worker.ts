@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto"
-import { hashMessage, recoverPublicKey } from "ethers/lib/utils"
+import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
 
 const getRing = (ourAddress: string) => {
   const index = Math.floor(Math.random() * 5)
@@ -25,8 +25,10 @@ addEventListener("message", (event) => {
       const commitment = commitAddress(address, pedersonParameters)
       console.log("worker: commitment:", commitment)
 
-      const msgHash = hashMessage(
-        `${commitment.commitment.x}${commitment.commitment.y}${commitment.commitment.z}`
+      const msgHash = keccak256(
+        toUtf8Bytes(
+          `${commitment.commitment.x}${commitment.commitment.y}${commitment.commitment.z}`
+        )
       )
       console.log("worker: msgHash:", msgHash)
 
