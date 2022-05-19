@@ -11,6 +11,7 @@ import {
   Stack,
   Text,
   TextInput,
+  ThemeIcon,
 } from "@mantine/core"
 import { useForm } from "@mantine/hooks"
 import { showNotification } from "@mantine/notifications"
@@ -19,6 +20,7 @@ import useBalancy from "hooks/useBalancy"
 import useGenerateProof from "hooks/useGenerateProof"
 import useSubmit from "hooks/useSubmit"
 import useVerifyProof from "hooks/useVerifyProof"
+import { Check, X } from "phosphor-react"
 import { useEffect, useMemo, useState } from "react"
 import fetcher from "utils/fetcher"
 import { useAccount, useConnect, useProvider } from "wagmi"
@@ -197,28 +199,43 @@ const DemoPage = () => {
           </Collapse> */}
       </Collapse>
 
-      <Button
-        sx={{ width: "min-content" }}
-        loading={!generateProof || isLoading}
-        onClick={onSubmit}
-      >
-        {(isLoading && "Generating proof") || "Generate proof"}
-      </Button>
+      <Group position="right">
+        <Button
+          sx={{ width: "min-content" }}
+          loading={!generateProof || isLoading}
+          onClick={onSubmit}
+          disabled={!cheatedAddresses}
+        >
+          {(isLoading && "Generating proof") || "Generate proof"}
+        </Button>
+      </Group>
 
       <Collapse in={!!proof}>
         <Stack>
           <Divider />
-          <Button
-            sx={{ width: "min-content" }}
-            loading={isVerifyLoading}
-            onClick={onVerifySubmit}
-          >
-            {(isVerifyLoading && "Verifying") || "Verify proof"}
-          </Button>
 
-          <Collapse in={typeof verifyResult === "boolean"}>
-            Verification test {(verifyResult && "passed") || "failed"}
-          </Collapse>
+          <Group>
+            <Button
+              sx={{ width: "min-content" }}
+              loading={isVerifyLoading}
+              onClick={onVerifySubmit}
+              size="xs"
+              variant="outline"
+            >
+              {(isVerifyLoading && "Verifying") || "Verify proof"}
+            </Button>
+
+            {typeof verifyResult === "boolean" && !isVerifyLoading && (
+              <ThemeIcon
+                color={(verifyResult && "green") || "red"}
+                variant="light"
+                size="lg"
+                sx={{ borderRadius: "100%" }}
+              >
+                {(verifyResult && <Check />) || <X />}
+              </ThemeIcon>
+            )}
+          </Group>
         </Stack>
       </Collapse>
     </Stack>
