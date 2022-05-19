@@ -6,12 +6,6 @@ import useSubmit from "hooks/useSubmit"
 import type { NextPage } from "next"
 import { useMemo, useState } from "react"
 import { useAccount, useConnect, useSignMessage } from "wagmi"
-import {
-  commitAddress,
-  generatePedersenParameters,
-  generateProof,
-  verifyProof,
-} from "../../zk-wasm"
 
 const getRandomAddresses = (ourAddress: string) => {
   const ourIndex = Math.floor(Math.random() * 5)
@@ -46,25 +40,37 @@ const Home: NextPage = () => {
     onSubmit: onGenerate,
     isLoading: isGenerating,
     response: generated,
-  } = useSubmit(async () => generatePedersenParameters())
+  } = useSubmit(async () => {
+    const { generatePedersenParameters } = await import("../../zk-wasm")
+    return generatePedersenParameters()
+  })
 
   const {
     onSubmit: onCommit,
     isLoading: isCommiting,
     response: commitment,
-  } = useSubmit<any, any>(async () => commitAddress(account.address, generated))
+  } = useSubmit<any, any>(async () => {
+    const { commitAddress } = await import("../../zk-wasm")
+    return commitAddress(account.address, generated)
+  })
 
   const {
     onSubmit: onGenerateProof,
     isLoading: isGeneratingProof,
     response: proof,
-  } = useSubmit(async () => generateProof(proofInput, commitment, generated))
+  } = useSubmit(async () => {
+    const { generateProof } = await import("../../zk-wasm")
+    return generateProof(proofInput, commitment, generated)
+  })
 
   const {
     onSubmit: onVerify,
     isLoading: isVerifying,
     response: verifyResult,
-  } = useSubmit(async () => verifyProof(proof))
+  } = useSubmit(async () => {
+    const { verifyProof } = await import("../../zk-wasm")
+    return verifyProof(proof)
+  })
 
   if (!isConnected) {
     return (
