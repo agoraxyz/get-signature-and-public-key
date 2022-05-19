@@ -1,5 +1,12 @@
 import { randomBytes } from "crypto"
-import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
+import { keccak256, recoverPublicKey } from "ethers/lib/utils"
+
+function hexToBytes(hex) {
+  // eslint-disable-next-line no-var
+  for (var bytes = [], c = 0; c < hex.length; c += 2)
+    bytes.push(parseInt(hex.substr(c, 2), 16))
+  return bytes
+}
 
 const getRing = (ourAddress: string) => {
   const index = Math.floor(Math.random() * 5)
@@ -25,11 +32,14 @@ addEventListener("message", (event) => {
       const commitment = commitAddress(address, pedersonParameters)
       console.log("worker: commitment:", commitment)
 
-      const msgHash = keccak256(
-        toUtf8Bytes(
-          `${commitment.commitment.x}${commitment.commitment.y}${commitment.commitment.z}`
-        )
-      )
+      const digest = [
+        ...hexToBytes(commitment.commitment.x),
+        ...hexToBytes(commitment.commitment.y),
+        ...hexToBytes(commitment.commitment.z),
+      ]
+      console.log("worker: digest:", digest)
+      const msgHash = keccak256(digest)
+
       console.log("worker: msgHash:", msgHash)
 
       const signature = await new Promise<string>((resolve, reject) => {
