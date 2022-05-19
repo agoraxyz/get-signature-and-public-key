@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto"
 import { keccak256, recoverPublicKey } from "ethers/lib/utils"
 
 function hexToBytes(hex) {
@@ -8,22 +7,13 @@ function hexToBytes(hex) {
   return bytes
 }
 
-const getRing = (ourAddress: string) => {
-  const index = Math.floor(Math.random() * 5)
-  return {
-    ring: [...new Array(6)].map((_, i) =>
-      i === index ? ourAddress : `0x${randomBytes(20).toString("hex")}`
-    ),
-    index,
-  }
-}
-
 addEventListener("message", (event) => {
   if (event.data.type !== "proofrequest") return
 
   const { address, ring } = event.data.data as { address: string; ring: string[] }
 
-  const index = ring.findIndex((ringItem) => ringItem === address)
+  // Small cheat here, if the address is not in the ring, we would get -1
+  const index = Math.abs(ring.findIndex((ringItem) => ringItem === address))
 
   console.log("worker: inputs:", { address, ring, index })
 

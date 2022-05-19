@@ -38,10 +38,6 @@ const useBalancy = (requirements, logic) => {
   const balancyLogic =
     logic === "NAND" || logic === "NOR" ? logic.substring(1) : logic
 
-  useEffect(() => {
-    console.log(debouncedRequirements)
-  }, [debouncedRequirements])
-
   const renderedRequirements = useMemo(
     () => debouncedRequirements?.filter(({ type }) => type !== null) ?? [],
     [debouncedRequirements]
@@ -75,10 +71,6 @@ const useBalancy = (requirements, logic) => {
         }) ?? [],
     [renderedRequirements]
   )
-
-  useEffect(() => {
-    console.log(mappedRequirements)
-  }, [mappedRequirements])
 
   const shouldFetch = !!balancyLogic && mappedRequirements?.length > 0
 

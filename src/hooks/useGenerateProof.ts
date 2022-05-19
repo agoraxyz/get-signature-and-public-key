@@ -22,13 +22,13 @@ const useGenerateProof = () => {
 
     return new Promise<any>((resolve, reject) => {
       const messageHandlers = {
-        signrequest: (data_1) =>
-          signMessageAsync({ message: data_1 })
+        signrequest: (message) =>
+          signMessageAsync({ message })
             .then((signature) =>
               worker.postMessage({ type: "signature", data: signature })
             )
             .catch(() => worker.postMessage({ type: "signature", data: null })),
-        proof: (data_3) => resolve(data_3),
+        proof: (proof) => resolve(proof),
         error: () => reject(),
       }
 

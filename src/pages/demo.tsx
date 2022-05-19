@@ -3,6 +3,7 @@ import {
   Button,
   Checkbox,
   Collapse,
+  Divider,
   Group,
   InputWrapper,
   Loader,
@@ -17,6 +18,7 @@ import { Contract } from "ethers"
 import useBalancy from "hooks/useBalancy"
 import useGenerateProof from "hooks/useGenerateProof"
 import useSubmit from "hooks/useSubmit"
+import useVerifyProof from "hooks/useVerifyProof"
 import { useEffect, useMemo, useState } from "react"
 import fetcher from "utils/fetcher"
 import { useAccount, useConnect, useProvider } from "wagmi"
@@ -43,7 +45,10 @@ const DemoPage = () => {
       Promise.all(
         r.requirements.map((req) =>
           req.type === "ERC20"
-            ? new Contract(req.address, ERC20_ABI, provider).decimals().then(Number)
+            ? new Contract(req.address, ERC20_ABI, provider)
+                .decimals()
+                .then(Number)
+                .catch(() => 18)
             : null
         )
       ).then((decimals) => ({
@@ -75,32 +80,58 @@ const DemoPage = () => {
     [addressesSet, isCheating]
   )
 
-  const { onSubmit, isLoading, response } = useSubmit(
-    () => generateProof(Array.from(cheatedAddresses)),
-    {
-      onError: () => {
-        showNotification({
-          color: "red",
-          title: "Error",
-          message: "Signature request has been rejected",
-          autoClose: 2000,
-        })
-      },
-      onSuccess: () => {
-        showNotification({
-          color: "green",
-          title: "Success",
-          message: "Proof generation successful",
-          autoClose: 2000,
-        })
-      },
-    }
-  )
+  const verifyProof = useVerifyProof()
+
+  const {
+    onSubmit,
+    isLoading,
+    response: proof,
+  } = useSubmit(() => generateProof(Array.from(cheatedAddresses)), {
+    onError: () => {
+      showNotification({
+        color: "red",
+        title: "Error",
+        message: "Signature request has been rejected",
+        autoClose: 2000,
+      })
+    },
+    onSuccess: () => {
+      showNotification({
+        color: "green",
+        title: "Success",
+        message: "Proof generation successful",
+        autoClose: 2000,
+      })
+    },
+  })
+
+  const {
+    onSubmit: onVerifySubmit,
+    isLoading: isVerifyLoading,
+    response: verifyResult,
+  } = useSubmit(() => verifyProof(proof), {
+    onError: () => {
+      showNotification({
+        color: "red",
+        title: "Error",
+        message: "Falied to verify proof",
+        autoClose: 2000,
+      })
+    },
+    onSuccess: () => {
+      showNotification({
+        color: "green",
+        title: "Success",
+        message: "Proof verification successful",
+        autoClose: 2000,
+      })
+    },
+  })
 
   useEffect(() => {
-    if (!response) return
-    console.log("Proof:", response)
-  }, [response])
+    if (!proof) return
+    console.log("Proof:", proof)
+  }, [proof])
 
   if (!isConnected) {
     return (
@@ -171,8 +202,25 @@ const DemoPage = () => {
         loading={!generateProof || isLoading}
         onClick={onSubmit}
       >
-        Generate proof
+        {(isLoading && "Generating proof") || "Generate proof"}
       </Button>
+
+      <Collapse in={!!proof}>
+        <Stack>
+          <Divider />
+          <Button
+            sx={{ width: "min-content" }}
+            loading={isVerifyLoading}
+            onClick={onVerifySubmit}
+          >
+            {(isVerifyLoading && "Verifying") || "Verify proof"}
+          </Button>
+
+          <Collapse in={typeof verifyResult === "boolean"}>
+            Verification test {(verifyResult && "passed") || "failed"}
+          </Collapse>
+        </Stack>
+      </Collapse>
     </Stack>
   )
 }
