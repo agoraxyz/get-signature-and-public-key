@@ -1,0 +1,13 @@
+{
+  "name": "tom256",
+  "version": "0.0.0-alpha.0",
+  "files": [
+    "tom256_bg.wasm",
+    "tom256.js",
+    "tom256_bg.js",
+    "tom256.d.ts"
+  ],
+  "module": "tom256.js",
+  "types": "tom256.d.ts",
+  "sideEffects": false
+}

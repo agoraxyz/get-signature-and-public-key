@@ -1,3 +1,4 @@
+/*
 import { randomBytes } from "crypto"
 
 const generatePedersenParameters = () =>
@@ -28,3 +29,6 @@ const verifyProof = (proof) =>
   new Promise((resolve) => setTimeout(() => resolve(true), 1000))
 
 export { generatePedersenParameters, commitAddress, generateProof, verifyProof }
+*/
+
+export { generatePedersenParameters, commitAddress, generateProof, verifyProof } from "../zk-wasm"
