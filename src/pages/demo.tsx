@@ -14,34 +14,22 @@ import {
   ThemeIcon,
 } from "@mantine/core"
 import { useForm } from "@mantine/hooks"
-import { showNotification } from "@mantine/notifications"
 import { Contract } from "ethers"
 import useBalancy from "hooks/useBalancy"
+import useGenerateProof from "hooks/useGenerateProof"
 import useSubmit from "hooks/useSubmit"
-import useWorker from "hooks/useWorker"
+import useVerifyProof from "hooks/useVerifyProof"
+import useVerifyRing from "hooks/useVerifyRing"
 import { Check, X } from "phosphor-react"
 import { useMemo, useState } from "react"
 import fetcher from "utils/fetcher"
-import { useAccount, useConnect, useProvider, useSignMessage } from "wagmi"
-import type {
-  Input as GenerateProofInput,
-  Output as GenerateProofOutput,
-} from "workers/generateProof.worker"
-import {
-  Input as VerifyProofInput,
-  Output as VerifyProofOutput,
-} from "workers/verifyProof.worker"
-import {
-  Input as VerifyRingInput,
-  Output as VerifyRingOutput,
-} from "workers/verifyRing.worker"
+import { useAccount, useConnect, useProvider } from "wagmi"
 import ERC20_ABI from "../static/erc20abi.json"
 
 const DemoPage = () => {
   const { data: accountData } = useAccount()
   const { isConnected } = useConnect()
   const provider = useProvider()
-  const { signMessageAsync } = useSignMessage()
 
   const guildNameForm = useForm({
     initialValues: {
@@ -97,105 +85,19 @@ const DemoPage = () => {
     onSubmit: onGenerateProof,
     isLoading: isProofGenerating,
     response: proof,
-  } = useWorker<GenerateProofInput, GenerateProofOutput>(
-    "generateProof",
-    {
-      signature:
-        ({ worker }) =>
-        (message) =>
-          signMessageAsync({ message })
-            .then((signature) =>
-              worker.postMessage({ type: "signature", data: signature })
-            )
-            .catch(() => worker.postMessage({ type: "signature", data: null })),
-      main:
-        ({ resolve, reject }) =>
-        (pr) =>
-          pr instanceof Error ? reject(pr) : resolve(pr),
-    },
-    {
-      onError: () => {
-        showNotification({
-          color: "red",
-          title: "Error",
-          message: "Signature request has been rejected",
-          autoClose: 2000,
-        })
-      },
-      onSuccess: () => {
-        showNotification({
-          color: "green",
-          title: "Success",
-          message: "Proof generation successful",
-          autoClose: 2000,
-        })
-      },
-    }
-  )
+  } = useGenerateProof()
 
   const {
     onSubmit: onVerifyProofSubmit,
     isLoading: isVerifyProofLoading,
     response: verifyProofResult,
-  } = useWorker<VerifyProofInput, VerifyProofOutput>(
-    "verifyProof",
-    {
-      main:
-        ({ resolve }) =>
-        (res) =>
-          resolve(res),
-    },
-    {
-      onError: () => {
-        showNotification({
-          color: "red",
-          title: "Error",
-          message: "Falied to verify proof",
-          autoClose: 2000,
-        })
-      },
-      onSuccess: () => {
-        showNotification({
-          color: "green",
-          title: "Success",
-          message: "Proof verification successful",
-          autoClose: 2000,
-        })
-      },
-    }
-  )
+  } = useVerifyProof()
 
   const {
     onSubmit: onVerifyRingSubmit,
     isLoading: isVerifyRingLoading,
     response: verifyRingResult,
-  } = useWorker<VerifyRingInput, VerifyRingOutput>(
-    "verifyRing",
-    {
-      main:
-        ({ resolve }) =>
-        (res) =>
-          resolve(res),
-    },
-    {
-      onError: () => {
-        showNotification({
-          color: "red",
-          title: "Error",
-          message: "Falied to verify ring",
-          autoClose: 2000,
-        })
-      },
-      onSuccess: () => {
-        showNotification({
-          color: "green",
-          title: "Success",
-          message: "Ring verification successful",
-          autoClose: 2000,
-        })
-      },
-    }
-  )
+  } = useVerifyRing()
 
   if (!isConnected) {
     return (
