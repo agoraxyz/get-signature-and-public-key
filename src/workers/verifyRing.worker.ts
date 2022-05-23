@@ -1,10 +1,15 @@
-addEventListener("message", (event) => {
-  if (event.data.type !== "verifyrequest") return
+export type Input = {
+  main: { balancyRing: string[]; proofRing: string[] }
+}
 
-  const { balancyRing, proofRing } = event.data.data as {
-    balancyRing: string[]
-    proofRing: string[]
-  }
+export type Output = {
+  main: boolean
+}
+
+addEventListener("message", (event) => {
+  if (event.data.type !== "main") return
+
+  const { balancyRing, proofRing } = event.data.data as Input["main"]
 
   console.log("worker: inputs:", { balancyRing, proofRing })
 
@@ -23,7 +28,7 @@ addEventListener("message", (event) => {
   )
   console.log("worker: isValid:", isValid)
 
-  postMessage({ type: "verifyresult", data: isValid })
+  postMessage({ type: "main", data: isValid })
 })
 
 export {}

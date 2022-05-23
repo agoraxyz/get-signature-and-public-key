@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-type Options<ResponseType> = {
+export type Options<ResponseType> = {
   onSuccess?: (response: ResponseType) => void
   onError?: (error: any) => void
 }

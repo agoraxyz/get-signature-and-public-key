@@ -17,21 +17,31 @@ import { useForm } from "@mantine/hooks"
 import { showNotification } from "@mantine/notifications"
 import { Contract } from "ethers"
 import useBalancy from "hooks/useBalancy"
-import useGenerateProof from "hooks/useGenerateProof"
 import useSubmit from "hooks/useSubmit"
-import useVerifyProof from "hooks/useVerifyProof"
-import useVerifyRing from "hooks/useVerifyRing"
+import useWorker from "hooks/useWorker"
 import { Check, X } from "phosphor-react"
 import { useMemo, useState } from "react"
 import fetcher from "utils/fetcher"
-import { useAccount, useConnect, useProvider } from "wagmi"
+import { useAccount, useConnect, useProvider, useSignMessage } from "wagmi"
+import type {
+  Input as GenerateProofInput,
+  Output as GenerateProofOutput,
+} from "workers/generateProof.worker"
+import {
+  Input as VerifyProofInput,
+  Output as VerifyProofOutput,
+} from "workers/verifyProof.worker"
+import {
+  Input as VerifyRingInput,
+  Output as VerifyRingOutput,
+} from "workers/verifyRing.worker"
 import ERC20_ABI from "../static/erc20abi.json"
 
 const DemoPage = () => {
   const { data: accountData } = useAccount()
-  const generateProof = useGenerateProof()
   const { isConnected } = useConnect()
   const provider = useProvider()
+  const { signMessageAsync } = useSignMessage()
 
   const guildNameForm = useForm({
     initialValues: {
@@ -83,78 +93,109 @@ const DemoPage = () => {
     [addressesSet, isCheating]
   )
 
-  const verifyProof = useVerifyProof()
-
   const {
-    onSubmit,
-    isLoading,
+    onSubmit: onGenerateProof,
+    isLoading: isProofGenerating,
     response: proof,
-  } = useSubmit(() => generateProof(Array.from(cheatedAddresses)), {
-    onError: () => {
-      showNotification({
-        color: "red",
-        title: "Error",
-        message: "Signature request has been rejected",
-        autoClose: 2000,
-      })
+  } = useWorker<GenerateProofInput, GenerateProofOutput>(
+    "generateProof",
+    {
+      signature:
+        ({ worker }) =>
+        (message) =>
+          signMessageAsync({ message })
+            .then((signature) =>
+              worker.postMessage({ type: "signature", data: signature })
+            )
+            .catch(() => worker.postMessage({ type: "signature", data: null })),
+      main:
+        ({ resolve, reject }) =>
+        (pr) =>
+          pr instanceof Error ? reject(pr) : resolve(pr),
     },
-    onSuccess: () => {
-      showNotification({
-        color: "green",
-        title: "Success",
-        message: "Proof generation successful",
-        autoClose: 2000,
-      })
-    },
-  })
+    {
+      onError: () => {
+        showNotification({
+          color: "red",
+          title: "Error",
+          message: "Signature request has been rejected",
+          autoClose: 2000,
+        })
+      },
+      onSuccess: () => {
+        showNotification({
+          color: "green",
+          title: "Success",
+          message: "Proof generation successful",
+          autoClose: 2000,
+        })
+      },
+    }
+  )
 
   const {
-    onSubmit: onVerifySubmit,
-    isLoading: isVerifyLoading,
-    response: verifyResult,
-  } = useSubmit(() => verifyProof(proof), {
-    onError: () => {
-      showNotification({
-        color: "red",
-        title: "Error",
-        message: "Falied to verify proof",
-        autoClose: 2000,
-      })
+    onSubmit: onVerifyProofSubmit,
+    isLoading: isVerifyProofLoading,
+    response: verifyProofResult,
+  } = useWorker<VerifyProofInput, VerifyProofOutput>(
+    "verifyProof",
+    {
+      main:
+        ({ resolve }) =>
+        (res) =>
+          resolve(res),
     },
-    onSuccess: () => {
-      showNotification({
-        color: "green",
-        title: "Success",
-        message: "Proof verification successful",
-        autoClose: 2000,
-      })
-    },
-  })
-
-  const verifyRing = useVerifyRing()
+    {
+      onError: () => {
+        showNotification({
+          color: "red",
+          title: "Error",
+          message: "Falied to verify proof",
+          autoClose: 2000,
+        })
+      },
+      onSuccess: () => {
+        showNotification({
+          color: "green",
+          title: "Success",
+          message: "Proof verification successful",
+          autoClose: 2000,
+        })
+      },
+    }
+  )
 
   const {
     onSubmit: onVerifyRingSubmit,
     isLoading: isVerifyRingLoading,
     response: verifyRingResult,
-  } = useSubmit(() => verifyRing(addresses, proof.ring), {
-    onError: () => {
-      showNotification({
-        color: "red",
-        title: "Error",
-        message: "Falied to verify ring",
-        autoClose: 2000,
-      })
+  } = useWorker<VerifyRingInput, VerifyRingOutput>(
+    "verifyRing",
+    {
+      main:
+        ({ resolve }) =>
+        (res) =>
+          resolve(res),
     },
-    onSuccess: () => {
-      showNotification({
-        color: "green",
-        title: "Success",
-        message: "Ring verification successful",
-        autoClose: 2000,
-      })
-    },
-  })
+    {
+      onError: () => {
+        showNotification({
+          color: "red",
+          title: "Error",
+          message: "Falied to verify ring",
+          autoClose: 2000,
+        })
+      },
+      onSuccess: () => {
+        showNotification({
+          color: "green",
+          title: "Success",
+          message: "Ring verification successful",
+          autoClose: 2000,
+        })
+      },
+    }
+  )
 
   if (!isConnected) {
     return (
@@ -223,11 +264,16 @@ const DemoPage = () => {
       <Group position="right">
         <Button
           sx={{ width: "min-content" }}
-          loading={!generateProof || isLoading}
-          onClick={onSubmit}
+          loading={isProofGenerating}
+          onClick={() =>
+            onGenerateProof({
+              address: accountData.address,
+              ring: Array.from(cheatedAddresses),
+            })
+          }
           disabled={!cheatedAddresses}
         >
-          {(isLoading && "Generating proof") || "Generate proof"}
+          {(isProofGenerating && "Generating proof") || "Generate proof"}
         </Button>
       </Group>
 
@@ -238,22 +284,22 @@ const DemoPage = () => {
           <Group>
             <Button
               sx={{ width: "min-content" }}
-              loading={isVerifyLoading}
-              onClick={onVerifySubmit}
+              loading={isVerifyProofLoading}
+              onClick={() => onVerifyProofSubmit({ proof })}
               size="xs"
               variant="outline"
             >
-              {(isVerifyLoading && "Verifying") || "Verify proof"}
+              {(isVerifyProofLoading && "Verifying") || "Verify proof"}
             </Button>
 
-            {typeof verifyResult === "boolean" && !isVerifyLoading && (
+            {typeof verifyProofResult === "boolean" && !isVerifyProofLoading && (
               <ThemeIcon
-                color={(verifyResult && "green") || "red"}
+                color={(verifyProofResult && "green") || "red"}
                 variant="light"
                 size="lg"
                 sx={{ borderRadius: "100%" }}
               >
-                {(verifyResult && <Check />) || <X />}
+                {(verifyProofResult && <Check />) || <X />}
               </ThemeIcon>
             )}
           </Group>
@@ -262,7 +308,9 @@ const DemoPage = () => {
             <Button
               sx={{ width: "min-content" }}
               loading={isVerifyRingLoading}
-              onClick={onVerifyRingSubmit}
+              onClick={() =>
+                onVerifyRingSubmit({ balancyRing: addresses, proofRing: proof.ring })
+              }
               size="xs"
               variant="outline"
             >

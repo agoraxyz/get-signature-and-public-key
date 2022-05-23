@@ -1,5 +1,15 @@
 import { keccak256, recoverPublicKey } from "ethers/lib/utils"
 
+export type Input = {
+  main: { address: string; ring: string[] }
+  signature: string
+}
+
+export type Output = {
+  main: any // type Proof
+  signature: string
+}
+
 function hexToBytes(hex) {
   // eslint-disable-next-line no-var
   for (var bytes = [], c = 0; c < hex.length; c += 2)
@@ -8,9 +18,9 @@ function hexToBytes(hex) {
 }
 
 addEventListener("message", (event) => {
-  if (event.data.type !== "proofrequest") return
+  if (event.data.type !== "main") return
 
-  const { address, ring } = event.data.data as { address: string; ring: string[] }
+  const { address, ring } = event.data.data as Input["main"]
 
   // Small cheat here, if the address is not in the ring, we would get -1
   const index = Math.abs(ring.findIndex((ringItem) => ringItem === address))
@@ -43,10 +53,13 @@ addEventListener("message", (event) => {
           resolve(ev.data.data)
         })
         console.log("worker: requesting signature")
-        postMessage({ type: "signrequest", data: msgHash })
+        postMessage({ type: "signature", data: msgHash })
       }).catch(() => {
         console.log("worker: signature was denied, proof won't be generated")
-        postMessage({ type: "error" })
+        postMessage({
+          type: "main",
+          data: new Error("Signature was denied, proof won't be generated"),
+        })
         return undefined
       })
 
@@ -69,7 +82,7 @@ addEventListener("message", (event) => {
 
       console.log("worker: sending proof message")
 
-      postMessage({ type: "proof", data: proof })
+      postMessage({ type: "main", data: proof })
     }
   )
 })
