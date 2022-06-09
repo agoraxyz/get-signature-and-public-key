@@ -1,19 +1,18 @@
 import {
-  Button,
   Checkbox,
   Collapse,
   Group,
   InputWrapper,
   Loader,
   Select,
+  SimpleGrid,
   Stack,
   Text,
-  TextInput,
 } from "@mantine/core"
-import { useForm } from "@mantine/hooks"
 import { Contract } from "ethers"
 import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
 import useBalancy from "hooks/useBalancy"
+import useGuilds from "hooks/useGuilds"
 import useSubmit from "hooks/useSubmit"
 import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
@@ -25,11 +24,13 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
   const { signMessageAsync } = useSignMessage()
   const provider = useProvider()
 
-  const guildNameForm = useForm({
-    initialValues: {
-      guildUrlName: "",
-    },
-  })
+  const guilds = useGuilds()
+  const guildsById = useMemo(
+    () =>
+      (!!guilds && Object.fromEntries(guilds.map((guild) => [guild.id, guild]))) ||
+      undefined,
+    [guilds]
+  )
 
   const { response: guild, onSubmit: onFetchGuild } = useSubmit(
     (guildUrlName) => fetcher(`/guild/${guildUrlName}`),
@@ -104,23 +105,21 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
 
   return (
     <>
-      <form
-        onSubmit={guildNameForm.onSubmit(({ guildUrlName }) =>
-          onFetchGuild(guildUrlName)
-        )}
-      >
-        <Group align="flex-end">
-          <InputWrapper label="Guild urlName" sx={{ flexGrow: 1 }}>
-            <TextInput {...guildNameForm.getInputProps("guildUrlName")} />
-          </InputWrapper>
+      <SimpleGrid cols={2}>
+        <InputWrapper label="Guild">
+          <Select
+            searchable
+            value={guild?.id}
+            onChange={(guildIdStr) => onFetchGuild(guildIdStr)}
+            data={(guilds ?? []).map(({ name: label, id: value }) => ({
+              label,
+              value,
+            }))}
+          />
+        </InputWrapper>
 
-          <Button type="submit">List Roles</Button>
-        </Group>
-      </form>
-
-      <Collapse in={!!guild?.roles}>
-        <Stack>
-          <InputWrapper label="Role" sx={{ flexGrow: 1 }}>
+        <Collapse in={!!guild}>
+          <InputWrapper label="Role">
             <Select
               onChange={onFetchRole}
               data={(guild?.roles ?? []).map(({ name: label, id: value }) => ({
@@ -129,30 +128,32 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
               }))}
             />
           </InputWrapper>
+        </Collapse>
+      </SimpleGrid>
 
-          {isBalancyLoading ? (
-            <Loader size="sm" />
-          ) : typeof holders === "number" ? (
-            <Text>{holders} addresses satisfy the requirements</Text>
-          ) : null}
+      <Stack>
+        {isBalancyLoading ? (
+          <Loader size="sm" />
+        ) : typeof holders === "number" ? (
+          <Text>{holders} addresses satisfy the requirements</Text>
+        ) : null}
 
-          <Collapse in={!!addressesSet}>
-            <Stack>
-              <Group>
-                <Text>Cheat?</Text>
-                <Checkbox
-                  checked={isCheating}
-                  onClick={({ target: { checked } }: any) => setIsCheating(checked)}
-                />
-              </Group>
+        <Collapse in={!!addressesSet}>
+          <Stack>
+            <Group>
+              <Text>Cheat?</Text>
+              <Checkbox
+                checked={isCheating}
+                onClick={({ target: { checked } }: any) => setIsCheating(checked)}
+              />
+            </Group>
 
-              {isCheating && cheatedAddresses.size > 0 && (
-                <Text>{cheatedAddresses.size} addresses after cheat</Text>
-              )}
-            </Stack>
-          </Collapse>
-        </Stack>
-      </Collapse>
+            {isCheating && cheatedAddresses.size > 0 && (
+              <Text>{cheatedAddresses.size} addresses after cheat</Text>
+            )}
+          </Stack>
+        </Collapse>
+      </Stack>
     </>
   )
 }
