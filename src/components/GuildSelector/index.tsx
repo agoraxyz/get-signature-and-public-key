@@ -25,12 +25,6 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
   const provider = useProvider()
 
   const guilds = useGuilds()
-  const guildsById = useMemo(
-    () =>
-      (!!guilds && Object.fromEntries(guilds.map((guild) => [guild.id, guild]))) ||
-      undefined,
-    [guilds]
-  )
 
   const { response: guild, onSubmit: onFetchGuild } = useSubmit(
     (guildUrlName) => fetcher(`/guild/${guildUrlName}`),
