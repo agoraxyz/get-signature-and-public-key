@@ -1,7 +1,7 @@
 import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
 
 export type Input = {
-  main: { address: string; ring: string[]; guildId: number }
+  main: { userPubKey: string; ring: string[]; guildId: number }
   signature: string
 }
 
@@ -15,12 +15,12 @@ addEventListener("message", (event) => {
 
   console.group("[WORKER - generateProof]")
 
-  const { address, ring, guildId } = event.data.data as Input["main"]
+  const { userPubKey, ring, guildId } = event.data.data as Input["main"]
 
   // Small cheat here, if the address is not in the ring, we would get -1
-  const index = Math.abs(ring.findIndex((ringItem) => ringItem === address))
+  const index = Math.abs(ring.findIndex((ringItem) => ringItem === userPubKey))
 
-  console.log("inputs:", { address, ring, index, guildId })
+  console.log("inputs:", { userPubKey, ring, index, guildId })
 
   import("zk-wasm")
     .then(async ({ generateProof }) => {
@@ -31,8 +31,6 @@ addEventListener("message", (event) => {
         addEventListener("message", (ev) => {
           if (ev.data.type !== "signature") return
           if (ev.data.data === null) reject()
-
-          console.log("recieved signature: ", event.data.data)
           resolve(ev.data.data)
         })
         console.log("requesting signature")
@@ -52,7 +50,7 @@ addEventListener("message", (event) => {
 
       const proofInput = {
         msgHash,
-        pubkey: recoverPublicKey(msgHash, signature),
+        pubkey: recoverPublicKey(msgHash, signature).slice(2),
         signature,
         index,
         guildId,

@@ -15,6 +15,7 @@ import {
 } from "@mantine/core"
 import { useForm } from "@mantine/hooks"
 import { Contract } from "ethers"
+import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
 import useBalancy from "hooks/useBalancy"
 import useGenerateProof from "hooks/useGenerateProof"
 import useSubmit from "hooks/useSubmit"
@@ -22,13 +23,15 @@ import useVerifyProof from "hooks/useVerifyProof"
 import useVerifyRing from "hooks/useVerifyRing"
 import { Check, X } from "phosphor-react"
 import { useMemo, useState } from "react"
+import useSWR from "swr"
 import fetcher from "utils/fetcher"
-import { useAccount, useConnect, useProvider } from "wagmi"
+import { useAccount, useConnect, useProvider, useSignMessage } from "wagmi"
 import ERC20_ABI from "../static/erc20abi.json"
 
 const DemoPage = () => {
   const { data: accountData } = useAccount()
   const { isConnected } = useConnect()
+  const { signMessageAsync } = useSignMessage()
   const provider = useProvider()
 
   const guildNameForm = useForm({
@@ -74,11 +77,28 @@ const DemoPage = () => {
   )
 
   const [isCheating, setIsCheating] = useState(false)
+  const { data: userPubKey } = useSWR(
+    isCheating && guild?.id ? ["dummy signature", guild?.id] : null,
+    (_, guildId) => {
+      const msgHash = keccak256(toUtf8Bytes(`#zkp/join.guild.xyz/${guildId}`))
+      return signMessageAsync({ message: msgHash }).then((dummySignature) =>
+        recoverPublicKey(msgHash, dummySignature).slice(2)
+      )
+    },
+    {
+      refreshInterval: 0,
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnMount: true,
+    }
+  )
 
   const cheatedAddresses = useMemo(
     () =>
-      isCheating ? new Set(addressesSet).add(accountData.address) : addressesSet,
-    [addressesSet, isCheating]
+      isCheating && userPubKey
+        ? new Set(addressesSet).add(userPubKey)
+        : addressesSet,
+    [addressesSet, isCheating, userPubKey]
   )
 
   const {
@@ -157,10 +177,6 @@ const DemoPage = () => {
             </Stack>
           </Collapse>
         </Stack>
-
-        {/* <Collapse in={!!requirements}>
-          <Prism language="json">{JSON.stringify(requirements, null, 2)}</Prism>
-          </Collapse> */}
       </Collapse>
 
       <Group position="right">
@@ -169,7 +185,7 @@ const DemoPage = () => {
           loading={isProofGenerating}
           onClick={() =>
             onGenerateProof({
-              address: accountData.address,
+              userPubKey,
               ring: Array.from(cheatedAddresses),
               guildId: guild?.id?.toString(),
             })

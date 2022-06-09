@@ -11,19 +11,17 @@ addEventListener("message", (event) => {
 
   console.group("[WORKER - verifyProof]")
 
-  const { proof, ring } = event.data.data
-
-  console.log("inputs:", { proof })
+  const { proof, ring } = event.data.data as Input["main"]
 
   import("zk-wasm")
     .then(async ({ verifyProof }) => {
-      console.log("calling verifyProof(proof)")
       try {
+        console.log("inputs: ", { proof, ring })
         const verifyResult = verifyProof(proof, ring)
-        console.log("verifyResult:", verifyResult)
+        console.log("result:", verifyResult)
         postMessage({ type: "main", data: verifyResult })
       } catch (error) {
-        console.log("verifyResult error:", error)
+        console.error("error:", error)
         postMessage({ type: "main", data: false })
       }
     })
