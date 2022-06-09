@@ -1,73 +1,122 @@
-import { randomBytes } from "crypto"
-import type { NextPage } from "next"
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Collapse,
+  Divider,
+  Group,
+  InputWrapper,
+  Loader,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  ThemeIcon,
+} from "@mantine/core"
+import { useForm } from "@mantine/hooks"
+import { Contract } from "ethers"
+import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
+import useBalancy from "hooks/useBalancy"
+import useGenerateProof from "hooks/useGenerateProof"
+import useSubmit from "hooks/useSubmit"
+import useVerifyProof from "hooks/useVerifyProof"
+import useVerifyRing from "hooks/useVerifyRing"
+import { Check, X } from "phosphor-react"
+import { useMemo, useState } from "react"
+import useSWR from "swr"
+import fetcher from "utils/fetcher"
+import { useConnect, useProvider, useSignMessage } from "wagmi"
+import ERC20_ABI from "../static/erc20abi.json"
 
-const getRandomAddresses = (ourAddress: string) => {
-  const ourIndex = Math.floor(Math.random() * 5)
-  return {
-    ring: [...new Array(6)].map((_, i) =>
-      i === ourIndex ? ourAddress : `0x${randomBytes(20).toString("hex")}`
-    ),
-    ourIndex,
-  }
-}
-
-const Home: NextPage = () => {
-  return null
-
-  /*
-  const { data: account } = useAccount()
-  const { signMessage, data: signature, isLoading, variables } = useSignMessage()
+const DemoPage = () => {
   const { isConnected } = useConnect()
+  const { signMessageAsync } = useSignMessage()
+  const provider = useProvider()
 
-  const [randomAddresses, setRandomAddresses] = useState(null)
+  const guildNameForm = useForm({
+    initialValues: {
+      guildUrlName: "",
+    },
+  })
 
-  const proofInput = useMemo(() => {
-    if (!variables || !randomAddresses) return null
+  const { response: guild, onSubmit: onFetchGuild } = useSubmit((guildUrlName) =>
+    fetcher(`/guild/${guildUrlName}`)
+  )
 
-    return {
-      msgHash: variables.message,
-      pubkey: recoverPublicKey(variables.message, signature),
-      signature,
-      index: randomAddresses.ourIndex,
-      ring: randomAddresses.ring,
+  const { response: role, onSubmit: onFetchRole } = useSubmit((roleId) =>
+    fetcher(`/role/${roleId}`).then((r) =>
+      Promise.all(
+        r.requirements.map((req) =>
+          req.type === "ERC20"
+            ? new Contract(req.address, ERC20_ABI, provider)
+                .decimals()
+                .then(Number)
+                .catch(() => 18)
+            : null
+        )
+      ).then((decimals) => ({
+        requirements: r.requirements.map((req, i) => ({
+          ...req,
+          decimals: decimals[i],
+        })),
+        logic: r.logic,
+      }))
+    )
+  )
+
+  const {
+    addresses,
+    holders,
+    isLoading: isBalancyLoading,
+  } = useBalancy(role?.requirements, role?.logic)
+
+  const addressesSet = useMemo(
+    () => (addresses ? new Set(addresses) : undefined),
+    [addresses]
+  )
+
+  const [isCheating, setIsCheating] = useState(false)
+  const { data: userPubKey } = useSWR(
+    isCheating && guild?.id ? ["dummy signature", guild?.id] : null,
+    (_, guildId) => {
+      const msgHash = keccak256(toUtf8Bytes(`#zkp/join.guild.xyz/${guildId}`))
+      return signMessageAsync({ message: msgHash }).then((dummySignature) =>
+        recoverPublicKey(msgHash, dummySignature).slice(2)
+      )
+    },
+    {
+      refreshInterval: 0,
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnMount: true,
     }
-  }, [randomAddresses, signature, variables])
+  )
 
-  const {
-    onSubmit: onGenerate,
-    isLoading: isGenerating,
-    response: generated,
-  } = useSubmit(async () => {
-    const { generatePedersenParameters } = await import("zk-wasm")
-    return generatePedersenParameters()
-  })
-
-  const {
-    onSubmit: onCommit,
-    isLoading: isCommiting,
-    response: commitment,
-  } = useSubmit<any, any>(async () => {
-    const { commitAddress } = await import("zk-wasm")
-    return commitAddress(account.address, generated)
-  })
+  const cheatedAddresses = useMemo(
+    () =>
+      isCheating && userPubKey
+        ? new Set(addressesSet).add(userPubKey)
+        : addressesSet,
+    [addressesSet, isCheating, userPubKey]
+  )
 
   const {
     onSubmit: onGenerateProof,
-    isLoading: isGeneratingProof,
+    isLoading: isProofGenerating,
     response: proof,
-  } = useSubmit(async () => {
-    const { generateProof } = await import("zk-wasm")
-    return generateProof(proofInput, commitment, generated)
-  })
+  } = useGenerateProof()
 
   const {
-    onSubmit: onVerify,
-    isLoading: isVerifying,
-    response: verifyResult,
-  } = useSubmit(async () => {
-    const { verifyProof } = await import("zk-wasm")
-    return verifyProof(proof)
-  })
+    onSubmit: onVerifyProofSubmit,
+    isLoading: isVerifyProofLoading,
+    response: verifyProofResult,
+  } = useVerifyProof()
+
+  const {
+    onSubmit: onVerifyRingSubmit,
+    isLoading: isVerifyRingLoading,
+    response: verifyRingResult,
+  } = useVerifyRing()
 
   if (!isConnected) {
     return (
@@ -79,103 +128,130 @@ const Home: NextPage = () => {
 
   return (
     <Stack>
-      <Button
-        style={{ width: "min-content" }}
-        loading={isGenerating}
-        onClick={onGenerate}
+      <form
+        onSubmit={guildNameForm.onSubmit(({ guildUrlName }) =>
+          onFetchGuild(guildUrlName)
+        )}
       >
-        Generate Pedersen parameters
-      </Button>
-      {!!generated && (
-        <>
-          <Prism language="json">{JSON.stringify(generated, null, 2)}</Prism>
+        <Group align="flex-end">
+          <InputWrapper label="Guild urlName" sx={{ flexGrow: 1 }}>
+            <TextInput {...guildNameForm.getInputProps("guildUrlName")} />
+          </InputWrapper>
 
-          <Button
-            style={{ width: "min-content" }}
-            loading={isCommiting}
-            onClick={onCommit}
-          >
-            Commit address
-          </Button>
+          <Button type="submit">List Roles</Button>
+        </Group>
+      </form>
 
-          {!!commitment && (
-            <>
-              <Prism language="json">{JSON.stringify(commitment, null, 2)}</Prism>
+      <Collapse in={!!guild?.roles}>
+        <Stack>
+          <InputWrapper label="Role" sx={{ flexGrow: 1 }}>
+            <Select
+              onChange={onFetchRole}
+              data={(guild?.roles ?? []).map(({ name: label, id: value }) => ({
+                label,
+                value,
+              }))}
+            />
+          </InputWrapper>
 
-              <Button
-                style={{ width: "min-content" }}
-                loading={isLoading}
-                onClick={() =>
-                  signMessage({
-                    message: hashMessage(
-                      `${commitment.commitment.x}${commitment.commitment.y}${commitment.commitment.z}`
-                    ),
-                  })
-                }
-              >
-                Sign
-              </Button>
+          {isBalancyLoading ? (
+            <Loader size="sm" />
+          ) : typeof holders === "number" ? (
+            <Text>{holders} addresses satisfy the requirements</Text>
+          ) : null}
 
-              {!!signature && (
-                <>
-                  <Prism language="json">
-                    {JSON.stringify({ signature }, null, 2)}
-                  </Prism>
+          <Collapse in={!!addressesSet}>
+            <Stack>
+              <Group>
+                <Text>Cheat?</Text>
+                <Checkbox
+                  checked={isCheating}
+                  onClick={({ target: { checked } }: any) => setIsCheating(checked)}
+                />
+              </Group>
 
-                  <Button
-                    style={{ width: "min-content" }}
-                    onClick={() => {
-                      setRandomAddresses(getRandomAddresses(account.address))
-                    }}
-                  >
-                    Generate proof input
-                  </Button>
-
-                  {!!proofInput && (
-                    <>
-                      <Prism language="json">
-                        {JSON.stringify(proofInput, null, 2)}
-                      </Prism>
-
-                      <Button
-                        style={{ width: "min-content" }}
-                        loading={isGeneratingProof}
-                        onClick={onGenerateProof}
-                      >
-                        Generate proof
-                      </Button>
-
-                      {!!proof && (
-                        <>
-                          <Prism language="json">
-                            {JSON.stringify(proof, null, 2)}
-                          </Prism>
-
-                          <Button
-                            style={{ width: "min-content" }}
-                            loading={isVerifying}
-                            onClick={onVerify}
-                          >
-                            Verify proof
-                          </Button>
-
-                          {!!verifyResult && (
-                            <Prism language="json">
-                              {JSON.stringify({ verifyResult }, null, 2)}
-                            </Prism>
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </>
+              {isCheating && cheatedAddresses.size > 0 && (
+                <Text>{cheatedAddresses.size} addresses after cheat</Text>
               )}
-            </>
-          )}
-        </>
-      )}
+            </Stack>
+          </Collapse>
+        </Stack>
+      </Collapse>
+
+      <Group position="right">
+        <Button
+          sx={{ width: "min-content" }}
+          loading={isProofGenerating}
+          onClick={() =>
+            onGenerateProof({
+              userPubKey,
+              ring: Array.from(cheatedAddresses),
+              guildId: guild?.id?.toString(),
+            })
+          }
+          disabled={!cheatedAddresses}
+        >
+          {(isProofGenerating && "Generating proof") || "Generate proof"}
+        </Button>
+      </Group>
+
+      <Collapse in={!!proof}>
+        <Stack>
+          <Divider />
+
+          <Group>
+            <Button
+              sx={{ width: "min-content" }}
+              loading={isVerifyProofLoading}
+              onClick={() =>
+                onVerifyProofSubmit({ proof, ring: Array.from(cheatedAddresses) })
+              }
+              size="xs"
+              variant="outline"
+            >
+              {(isVerifyProofLoading && "Verifying") || "Verify proof"}
+            </Button>
+
+            {typeof verifyProofResult === "boolean" && !isVerifyProofLoading && (
+              <ThemeIcon
+                color={(verifyProofResult && "green") || "red"}
+                variant="light"
+                size="lg"
+                sx={{ borderRadius: "100%" }}
+              >
+                {(verifyProofResult && <Check />) || <X />}
+              </ThemeIcon>
+            )}
+          </Group>
+
+          <Group>
+            <Button
+              sx={{ width: "min-content" }}
+              loading={isVerifyRingLoading}
+              onClick={() =>
+                onVerifyRingSubmit({ balancyRing: addresses, proofRing: proof.ring })
+              }
+              size="xs"
+              variant="outline"
+            >
+              {(isVerifyRingLoading && "Verifying") || "Verify ring"}
+            </Button>
+
+            {typeof verifyRingResult === "boolean" && !isVerifyRingLoading && (
+              <ThemeIcon
+                color={(verifyRingResult && "green") || "red"}
+                variant="light"
+                size="lg"
+                sx={{ borderRadius: "100%" }}
+              >
+                {(verifyRingResult && <Check />) || <X />}
+              </ThemeIcon>
+            )}
+          </Group>
+        </Stack>
+      </Collapse>
     </Stack>
-  )*/
+  )
 }
 
-export default Home
+export default DemoPage
