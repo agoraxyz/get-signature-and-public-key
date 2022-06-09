@@ -171,7 +171,7 @@ const DemoPage = () => {
             onGenerateProof({
               address: accountData.address,
               ring: Array.from(cheatedAddresses),
-              guildId: guild?.id,
+              guildId: guild?.id?.toString(),
             })
           }
           disabled={!cheatedAddresses}
