@@ -221,22 +221,14 @@ export function __wbindgen_string_new(arg0, arg1) {
     return addHeapObject(ret);
 };
 
-export function __wbindgen_object_drop_ref(arg0) {
-    takeObject(arg0);
-};
-
 export function __wbindgen_json_parse(arg0, arg1) {
     const ret = JSON.parse(getStringFromWasm0(arg0, arg1));
     return addHeapObject(ret);
 };
 
-export function __wbg_getRandomValues_fb6b088efb6bead2() { return handleError(function (arg0, arg1) {
-    getObject(arg0).getRandomValues(getObject(arg1));
-}, arguments) };
-
-export function __wbg_randomFillSync_654a7797990fb8db() { return handleError(function (arg0, arg1, arg2) {
-    getObject(arg0).randomFillSync(getArrayU8FromWasm0(arg1, arg2));
-}, arguments) };
+export function __wbindgen_object_drop_ref(arg0) {
+    takeObject(arg0);
+};
 
 export function __wbg_process_70251ed1291754d5(arg0) {
     const ret = getObject(arg0).process;
@@ -283,6 +275,14 @@ export function __wbg_msCrypto_d07655bf62361f21(arg0) {
     const ret = getObject(arg0).msCrypto;
     return addHeapObject(ret);
 };
+
+export function __wbg_getRandomValues_fb6b088efb6bead2() { return handleError(function (arg0, arg1) {
+    getObject(arg0).getRandomValues(getObject(arg1));
+}, arguments) };
+
+export function __wbg_randomFillSync_654a7797990fb8db() { return handleError(function (arg0, arg1, arg2) {
+    getObject(arg0).randomFillSync(getArrayU8FromWasm0(arg1, arg2));
+}, arguments) };
 
 export function __wbg_newnoargs_e23b458e372830de(arg0, arg1) {
     const ret = new Function(getStringFromWasm0(arg0, arg1));
