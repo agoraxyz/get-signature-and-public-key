@@ -9,9 +9,11 @@ export type Output = {
 addEventListener("message", (event) => {
   if (event.data.type !== "main") return
 
+  console.group("[WORKER - verifyRing]")
+
   const { balancyRing, proofRing } = event.data.data as Input["main"]
 
-  console.log("worker: inputs:", { balancyRing, proofRing })
+  console.log("inputs:", { balancyRing, proofRing })
 
   const balancyRingSet = new Set(balancyRing.map((address) => address.toLowerCase()))
 
@@ -26,7 +28,9 @@ addEventListener("message", (event) => {
         )}`
     )
   )
-  console.log("worker: isValid:", isValid)
+  console.log("isValid:", isValid)
+
+  console.groupEnd()
 
   postMessage({ type: "main", data: isValid })
 })

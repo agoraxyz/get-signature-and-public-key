@@ -1,7 +1,7 @@
-import { keccak256, recoverPublicKey } from "ethers/lib/utils"
+import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
 
 export type Input = {
-  main: { address: string; ring: string[] }
+  main: { address: string; ring: string[]; guildId: number }
   signature: string
 }
 
@@ -10,44 +10,35 @@ export type Output = {
   signature: string
 }
 
-function hexToBytes(hex) {
-  // eslint-disable-next-line no-var
-  for (var bytes = [], c = 0; c < hex.length; c += 2)
-    bytes.push(parseInt(hex.substr(c, 2), 16))
-  return bytes
-}
-
 addEventListener("message", (event) => {
   if (event.data.type !== "main") return
 
-  const { address, ring } = event.data.data as Input["main"]
+  console.group("[WORKER - generateProof]")
+
+  const { address, ring, guildId } = event.data.data as Input["main"]
 
   // Small cheat here, if the address is not in the ring, we would get -1
   const index = Math.abs(ring.findIndex((ringItem) => ringItem === address))
 
-  console.log("worker: inputs:", { address, ring, index })
-
-  import("../../zk-wasm").then(
-    async ({ commitAddress, generatePedersenParameters, generateProof }) => {
-      const pedersonParameters = generatePedersenParameters()
-      console.log("worker: pedersonParameters:", pedersonParameters)
-      const commitment = commitAddress(address, pedersonParameters)
-      console.log("worker: commitment:", commitment)
+  console.log("inputs:", { address, ring, index, guildId })
 
   import("zk-wasm")
+    .then(async ({ generateProof }) => {
+      const msgHash = keccak256(toUtf8Bytes(`#zkp/join.guild.xyz/${guildId}`))
+      console.log("msgHash:", msgHash)
 
       const signature = await new Promise<string>((resolve, reject) => {
         addEventListener("message", (ev) => {
           if (ev.data.type !== "signature") return
           if (ev.data.data === null) reject()
 
-          console.log("worker: recieved signature: ", event.data.data)
+          console.log("recieved signature: ", event.data.data)
           resolve(ev.data.data)
         })
-        console.log("worker: requesting signature")
+        console.log("requesting signature")
         postMessage({ type: "signature", data: msgHash })
       }).catch(() => {
-        console.log("worker: signature was denied, proof won't be generated")
+        console.log("signature was denied, proof won't be generated")
         postMessage({
           type: "main",
           data: new Error("Signature was denied, proof won't be generated"),
@@ -57,26 +48,26 @@ addEventListener("message", (event) => {
 
       if (signature === undefined) return
 
-      console.log("worker: signature:", signature)
+      console.log("signature:", signature)
 
       const proofInput = {
         msgHash,
         pubkey: recoverPublicKey(msgHash, signature),
         signature,
         index,
-        ring,
+        guildId,
       }
-      console.log("worker: proofInput:", proofInput)
+      console.log("proofInput:", { input: proofInput, ring })
 
-      const proof = generateProof(proofInput, commitment, pedersonParameters)
+      const proof = generateProof(proofInput, ring)
 
-      console.log("worker: proof:", proof)
-
-      console.log("worker: sending proof message")
+      console.log("proof:", proof)
 
       postMessage({ type: "main", data: proof })
-    }
-  )
+    })
+    .finally(() => {
+      console.groupEnd()
+    })
 })
 
 export {}

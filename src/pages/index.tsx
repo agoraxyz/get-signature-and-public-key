@@ -1,11 +1,5 @@
-import { Alert, Button, Stack } from "@mantine/core"
-import { Prism } from "@mantine/prism"
 import { randomBytes } from "crypto"
-import { hashMessage, recoverPublicKey } from "ethers/lib/utils"
-import useSubmit from "hooks/useSubmit"
 import type { NextPage } from "next"
-import { useMemo, useState } from "react"
-import { useAccount, useConnect, useSignMessage } from "wagmi"
 
 const getRandomAddresses = (ourAddress: string) => {
   const ourIndex = Math.floor(Math.random() * 5)
@@ -18,6 +12,9 @@ const getRandomAddresses = (ourAddress: string) => {
 }
 
 const Home: NextPage = () => {
+  return null
+
+  /*
   const { data: account } = useAccount()
   const { signMessage, data: signature, isLoading, variables } = useSignMessage()
   const { isConnected } = useConnect()
@@ -178,7 +175,7 @@ const Home: NextPage = () => {
         </>
       )}
     </Stack>
-  )
+  )*/
 }
 
 export default Home

@@ -1,5 +1,5 @@
 export type Input = {
-  main: { proof: any } // TODO type Proof
+  main: { proof: any; ring: any } // TODO typing
 }
 
 export type Output = {
@@ -9,19 +9,27 @@ export type Output = {
 addEventListener("message", (event) => {
   if (event.data.type !== "main") return
 
-  const { proof } = event.data.data
+  console.group("[WORKER - verifyProof]")
 
-  console.log("worker: inputs:", { proof })
+  const { proof, ring } = event.data.data
+
+  console.log("inputs:", { proof })
 
   import("zk-wasm")
-      const verifyResult = verifyProof(proof)
-      console.log("worker: verifyResult:", verifyResult)
-      postMessage({ type: "main", data: verifyResult })
-    } catch (error) {
-      console.log("worker: verifyResult error:", error)
-      postMessage({ type: "main", data: false })
-    }
-  })
+    .then(async ({ verifyProof }) => {
+      console.log("calling verifyProof(proof)")
+      try {
+        const verifyResult = verifyProof(proof, ring)
+        console.log("verifyResult:", verifyResult)
+        postMessage({ type: "main", data: verifyResult })
+      } catch (error) {
+        console.log("verifyResult error:", error)
+        postMessage({ type: "main", data: false })
+      }
+    })
+    .finally(() => {
+      console.groupEnd()
+    })
 })
 
 export {}

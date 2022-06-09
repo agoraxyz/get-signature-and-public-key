@@ -37,8 +37,8 @@ const DemoPage = () => {
     },
   })
 
-  const { response: roles, onSubmit: onFetchGuild } = useSubmit((guildUrlName) =>
-    fetcher(`/guild/${guildUrlName}`).then((g) => g.roles)
+  const { response: guild, onSubmit: onFetchGuild } = useSubmit((guildUrlName) =>
+    fetcher(`/guild/${guildUrlName}`)
   )
 
   const { response: role, onSubmit: onFetchRole } = useSubmit((roleId) =>
@@ -123,12 +123,12 @@ const DemoPage = () => {
         </Group>
       </form>
 
-      <Collapse in={!!roles}>
+      <Collapse in={!!guild?.roles}>
         <Stack>
           <InputWrapper label="Role" sx={{ flexGrow: 1 }}>
             <Select
               onChange={onFetchRole}
-              data={(roles ?? []).map(({ name: label, id: value }) => ({
+              data={(guild?.roles ?? []).map(({ name: label, id: value }) => ({
                 label,
                 value,
               }))}
@@ -171,6 +171,7 @@ const DemoPage = () => {
             onGenerateProof({
               address: accountData.address,
               ring: Array.from(cheatedAddresses),
+              guildId: guild?.id,
             })
           }
           disabled={!cheatedAddresses}
@@ -187,7 +188,9 @@ const DemoPage = () => {
             <Button
               sx={{ width: "min-content" }}
               loading={isVerifyProofLoading}
-              onClick={() => onVerifyProofSubmit({ proof })}
+              onClick={() =>
+                onVerifyProofSubmit({ proof, ring: Array.from(cheatedAddresses) })
+              }
               size="xs"
               variant="outline"
             >
