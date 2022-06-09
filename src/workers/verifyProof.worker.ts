@@ -13,9 +13,7 @@ addEventListener("message", (event) => {
 
   console.log("worker: inputs:", { proof })
 
-  import("../../zk-wasm").then(async ({ verifyProof }) => {
-    console.log("worker: calling verifyProof...")
-    try {
+  import("zk-wasm")
       const verifyResult = verifyProof(proof)
       console.log("worker: verifyResult:", verifyResult)
       postMessage({ type: "main", data: verifyResult })

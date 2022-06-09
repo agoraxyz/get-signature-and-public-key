@@ -41,7 +41,7 @@ const Home: NextPage = () => {
     isLoading: isGenerating,
     response: generated,
   } = useSubmit(async () => {
-    const { generatePedersenParameters } = await import("../../zk-wasm")
+    const { generatePedersenParameters } = await import("zk-wasm")
     return generatePedersenParameters()
   })
 
@@ -50,7 +50,7 @@ const Home: NextPage = () => {
     isLoading: isCommiting,
     response: commitment,
   } = useSubmit<any, any>(async () => {
-    const { commitAddress } = await import("../../zk-wasm")
+    const { commitAddress } = await import("zk-wasm")
     return commitAddress(account.address, generated)
   })
 
@@ -59,7 +59,7 @@ const Home: NextPage = () => {
     isLoading: isGeneratingProof,
     response: proof,
   } = useSubmit(async () => {
-    const { generateProof } = await import("../../zk-wasm")
+    const { generateProof } = await import("zk-wasm")
     return generateProof(proofInput, commitment, generated)
   })
 
@@ -68,7 +68,7 @@ const Home: NextPage = () => {
     isLoading: isVerifying,
     response: verifyResult,
   } = useSubmit(async () => {
-    const { verifyProof } = await import("../../zk-wasm")
+    const { verifyProof } = await import("zk-wasm")
     return verifyProof(proof)
   })
 

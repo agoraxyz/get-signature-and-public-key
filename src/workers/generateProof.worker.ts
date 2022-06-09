@@ -34,15 +34,7 @@ addEventListener("message", (event) => {
       const commitment = commitAddress(address, pedersonParameters)
       console.log("worker: commitment:", commitment)
 
-      const digest = [
-        ...hexToBytes(commitment.commitment.x),
-        ...hexToBytes(commitment.commitment.y),
-        ...hexToBytes(commitment.commitment.z),
-      ]
-      console.log("worker: digest:", digest)
-      const msgHash = keccak256(digest)
-
-      console.log("worker: msgHash:", msgHash)
+  import("zk-wasm")
 
       const signature = await new Promise<string>((resolve, reject) => {
         addEventListener("message", (ev) => {
