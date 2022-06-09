@@ -1,104 +1,24 @@
 import {
   Alert,
   Button,
-  Checkbox,
   Collapse,
   Divider,
   Group,
-  InputWrapper,
-  Loader,
-  Select,
   Stack,
-  Text,
-  TextInput,
   ThemeIcon,
 } from "@mantine/core"
-import { useForm } from "@mantine/hooks"
-import { Contract } from "ethers"
-import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
-import useBalancy from "hooks/useBalancy"
+import GuildSelector from "components/GuildSelector"
 import useGenerateProof from "hooks/useGenerateProof"
-import useSubmit from "hooks/useSubmit"
 import useVerifyProof from "hooks/useVerifyProof"
-import useVerifyRing from "hooks/useVerifyRing"
 import { Check, X } from "phosphor-react"
-import { useMemo, useState } from "react"
-import useSWR from "swr"
-import fetcher from "utils/fetcher"
-import { useConnect, useProvider, useSignMessage } from "wagmi"
-import ERC20_ABI from "../static/erc20abi.json"
+import { useState } from "react"
+import { useConnect } from "wagmi"
 
 const DemoPage = () => {
   const { isConnected } = useConnect()
-  const { signMessageAsync } = useSignMessage()
-  const provider = useProvider()
-
-  const guildNameForm = useForm({
-    initialValues: {
-      guildUrlName: "",
-    },
-  })
-
-  const { response: guild, onSubmit: onFetchGuild } = useSubmit((guildUrlName) =>
-    fetcher(`/guild/${guildUrlName}`)
-  )
-
-  const { response: role, onSubmit: onFetchRole } = useSubmit((roleId) =>
-    fetcher(`/role/${roleId}`).then((r) =>
-      Promise.all(
-        r.requirements.map((req) =>
-          req.type === "ERC20"
-            ? new Contract(req.address, ERC20_ABI, provider)
-                .decimals()
-                .then(Number)
-                .catch(() => 18)
-            : null
-        )
-      ).then((decimals) => ({
-        requirements: r.requirements.map((req, i) => ({
-          ...req,
-          decimals: decimals[i],
-        })),
-        logic: r.logic,
-      }))
-    )
-  )
-
-  const {
-    addresses,
-    holders,
-    isLoading: isBalancyLoading,
-  } = useBalancy(role?.requirements, role?.logic)
-
-  const addressesSet = useMemo(
-    () => (addresses ? new Set(addresses) : undefined),
-    [addresses]
-  )
-
-  const [isCheating, setIsCheating] = useState(false)
-  const { data: userPubKey } = useSWR(
-    isCheating && guild?.id ? ["dummy signature", guild?.id] : null,
-    (_, guildId) => {
-      const msgHash = keccak256(toUtf8Bytes(`#zkp/join.guild.xyz/${guildId}`))
-      return signMessageAsync({ message: msgHash }).then((dummySignature) =>
-        recoverPublicKey(msgHash, dummySignature).slice(2)
-      )
-    },
-    {
-      refreshInterval: 0,
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
-      revalidateOnMount: true,
-    }
-  )
-
-  const cheatedAddresses = useMemo(
-    () =>
-      isCheating && userPubKey
-        ? new Set(addressesSet).add(userPubKey)
-        : addressesSet,
-    [addressesSet, isCheating, userPubKey]
-  )
+  const [ring, setRing] = useState<string[]>()
+  const [userPubKey, setUserPubKey] = useState<string>()
+  const [guild, setGuild] = useState<any>()
 
   const {
     onSubmit: onGenerateProof,
@@ -112,12 +32,6 @@ const DemoPage = () => {
     response: verifyProofResult,
   } = useVerifyProof()
 
-  const {
-    onSubmit: onVerifyRingSubmit,
-    isLoading: isVerifyRingLoading,
-    response: verifyRingResult,
-  } = useVerifyRing()
-
   if (!isConnected) {
     return (
       <Alert title="Wallet not connected" color="red">
@@ -128,55 +42,7 @@ const DemoPage = () => {
 
   return (
     <Stack>
-      <form
-        onSubmit={guildNameForm.onSubmit(({ guildUrlName }) =>
-          onFetchGuild(guildUrlName)
-        )}
-      >
-        <Group align="flex-end">
-          <InputWrapper label="Guild urlName" sx={{ flexGrow: 1 }}>
-            <TextInput {...guildNameForm.getInputProps("guildUrlName")} />
-          </InputWrapper>
-
-          <Button type="submit">List Roles</Button>
-        </Group>
-      </form>
-
-      <Collapse in={!!guild?.roles}>
-        <Stack>
-          <InputWrapper label="Role" sx={{ flexGrow: 1 }}>
-            <Select
-              onChange={onFetchRole}
-              data={(guild?.roles ?? []).map(({ name: label, id: value }) => ({
-                label,
-                value,
-              }))}
-            />
-          </InputWrapper>
-
-          {isBalancyLoading ? (
-            <Loader size="sm" />
-          ) : typeof holders === "number" ? (
-            <Text>{holders} addresses satisfy the requirements</Text>
-          ) : null}
-
-          <Collapse in={!!addressesSet}>
-            <Stack>
-              <Group>
-                <Text>Cheat?</Text>
-                <Checkbox
-                  checked={isCheating}
-                  onClick={({ target: { checked } }: any) => setIsCheating(checked)}
-                />
-              </Group>
-
-              {isCheating && cheatedAddresses.size > 0 && (
-                <Text>{cheatedAddresses.size} addresses after cheat</Text>
-              )}
-            </Stack>
-          </Collapse>
-        </Stack>
-      </Collapse>
+      <GuildSelector {...{ setGuild, setRing, setUserPubKey }} />
 
       <Group position="right">
         <Button
@@ -185,11 +51,11 @@ const DemoPage = () => {
           onClick={() =>
             onGenerateProof({
               userPubKey,
-              ring: Array.from(cheatedAddresses),
+              ring,
               guildId: guild?.id?.toString(),
             })
           }
-          disabled={!cheatedAddresses}
+          disabled={!ring}
         >
           {(isProofGenerating && "Generating proof") || "Generate proof"}
         </Button>
@@ -203,9 +69,7 @@ const DemoPage = () => {
             <Button
               sx={{ width: "min-content" }}
               loading={isVerifyProofLoading}
-              onClick={() =>
-                onVerifyProofSubmit({ proof, ring: Array.from(cheatedAddresses) })
-              }
+              onClick={() => onVerifyProofSubmit({ proof, ring })}
               size="xs"
               variant="outline"
             >
@@ -220,31 +84,6 @@ const DemoPage = () => {
                 sx={{ borderRadius: "100%" }}
               >
                 {(verifyProofResult && <Check />) || <X />}
-              </ThemeIcon>
-            )}
-          </Group>
-
-          <Group>
-            <Button
-              sx={{ width: "min-content" }}
-              loading={isVerifyRingLoading}
-              onClick={() =>
-                onVerifyRingSubmit({ balancyRing: addresses, proofRing: proof.ring })
-              }
-              size="xs"
-              variant="outline"
-            >
-              {(isVerifyRingLoading && "Verifying") || "Verify ring"}
-            </Button>
-
-            {typeof verifyRingResult === "boolean" && !isVerifyRingLoading && (
-              <ThemeIcon
-                color={(verifyRingResult && "green") || "red"}
-                variant="light"
-                size="lg"
-                sx={{ borderRadius: "100%" }}
-              >
-                {(verifyRingResult && <Check />) || <X />}
               </ThemeIcon>
             )}
           </Group>

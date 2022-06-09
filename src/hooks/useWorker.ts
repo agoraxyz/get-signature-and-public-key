@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import useSubmit, { Options } from "./useSubmit"
 
-type WorkerName = "generateProof" | "verifyProof" | "verifyRing"
+type WorkerName = "generateProof" | "verifyProof"
 
 type BaseOutput = {
   main: any
@@ -33,9 +33,6 @@ const useWorker = <Inputs extends BaseOutput, Outputs extends BaseOutput>(
       ),
       verifyProof: new Worker(
         new URL(`../workers/verifyProof.worker.ts`, import.meta.url)
-      ),
-      verifyRing: new Worker(
-        new URL(`../workers/verifyRing.worker.ts`, import.meta.url)
       ),
     }
 
