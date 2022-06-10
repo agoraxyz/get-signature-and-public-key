@@ -53,14 +53,14 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
   )
 
   const {
-    addresses,
+    Pubkeys,
     holders,
     isLoading: isBalancyLoading,
-  } = useBalancy(role?.requirements, role?.logic)
+  } = useBalancy<"sign">(role?.requirements, role?.logic, "sign")
 
-  const addressesSet = useMemo(
-    () => (addresses ? new Set(addresses) : undefined),
-    [addresses]
+  const pubKeysSet = useMemo(
+    () => (Pubkeys ? new Set(Pubkeys) : undefined),
+    [Pubkeys]
   )
 
   const [isCheating, setIsCheating] = useState(false)
@@ -81,20 +81,19 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
     }
   )
 
-  const cheatedAddresses = useMemo(
+  const pubKeysAfterCheat = useMemo(
     () =>
-      isCheating && userPubKey
-        ? new Set(addressesSet).add(userPubKey)
-        : addressesSet,
-    [addressesSet, isCheating, userPubKey]
+      isCheating && userPubKey ? new Set(pubKeysSet).add(userPubKey) : pubKeysSet,
+    [pubKeysSet, isCheating, userPubKey]
   )
 
   useEffect(
     () =>
       setRing(
-        (cheatedAddresses !== undefined && Array.from(cheatedAddresses)) || undefined
+        (pubKeysAfterCheat !== undefined && Array.from(pubKeysAfterCheat)) ||
+          undefined
       ),
-    [cheatedAddresses]
+    [pubKeysAfterCheat]
   )
 
   return (
@@ -132,7 +131,7 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
           <Text>{holders} addresses satisfy the requirements</Text>
         ) : null}
 
-        <Collapse in={!!addressesSet}>
+        <Collapse in={!!pubKeysSet}>
           <Stack>
             <Group>
               <Text>Cheat?</Text>
@@ -142,8 +141,8 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
               />
             </Group>
 
-            {isCheating && cheatedAddresses.size > 0 && (
-              <Text>{cheatedAddresses.size} addresses after cheat</Text>
+            {isCheating && pubKeysAfterCheat.size > 0 && (
+              <Text>{pubKeysAfterCheat.size} addresses after cheat</Text>
             )}
           </Stack>
         </Collapse>
