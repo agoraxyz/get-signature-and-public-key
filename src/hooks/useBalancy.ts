@@ -18,7 +18,7 @@ const fetchHolders = (
     },
   }).then((data) => ({ ...data, usedLogic: logic }))
 
-type BalancyResponse = {
+export type BalancyResponse = {
   xyzHolders: {
     addresses: string[]
     count: number

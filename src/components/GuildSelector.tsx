@@ -18,9 +18,9 @@ import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
 import fetcher from "utils/fetcher"
 import { useProvider, useSignMessage } from "wagmi"
-import ERC20_ABI from "../../static/erc20abi.json"
+import ERC20_ABI from "../static/erc20abi.json"
 
-const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
+const GuildSelector = ({ setGuild, setUserPubKey, setRing, setBalancyResponse }) => {
   const { signMessageAsync } = useSignMessage()
   const provider = useProvider()
 
@@ -56,7 +56,15 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
     Pubkeys,
     holders,
     isLoading: isBalancyLoading,
+    Hash,
+    Nonce,
+    Signature,
+    Timestamp,
   } = useBalancy<"sign">(role?.requirements, role?.logic, "sign")
+
+  useEffect(() => {
+    setBalancyResponse({ Pubkeys, Hash, Nonce, Signature, Timestamp })
+  }, [Pubkeys, Hash, Nonce, Signature, Timestamp])
 
   const pubKeysSet = useMemo(
     () => (Pubkeys ? new Set(Pubkeys) : undefined),
