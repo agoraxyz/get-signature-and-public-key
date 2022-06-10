@@ -149,10 +149,11 @@ const useBalancy = <Mode extends keyof BalancyResponse>(
 
   return {
     holders:
-      ("count" in holders && holders?.count) ||
-      ("addresses" in holders && holders.addresses.length) ||
-      ("Pubkeys" in holders && holders.Pubkeys.length) ||
-      undefined,
+      holders &&
+      (("count" in holders && holders?.count) ||
+        ("addresses" in holders && holders.addresses.length) ||
+        ("Pubkeys" in holders && holders.Pubkeys.length) ||
+        undefined),
     isLoading: isValidating,
     inaccuracy:
       renderedRequirements.length - (mappedRequirements.length + allowlists.length), // Always non-negative

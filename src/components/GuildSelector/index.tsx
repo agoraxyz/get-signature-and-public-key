@@ -1,12 +1,12 @@
 import {
   Checkbox,
   Collapse,
+  Divider,
   Group,
   InputWrapper,
   Loader,
   Select,
   SimpleGrid,
-  Stack,
   Text,
 } from "@mantine/core"
 import { Contract } from "ethers"
@@ -98,7 +98,7 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
 
   return (
     <>
-      <SimpleGrid cols={2}>
+      <SimpleGrid cols={2} style={{ flexGrow: 1 }}>
         <InputWrapper label="Guild">
           <Select
             searchable
@@ -124,29 +124,24 @@ const GuildSelector = ({ setGuild, setUserPubKey, setRing }) => {
         </Collapse>
       </SimpleGrid>
 
-      <Stack>
+      <Group align={"center"}>
         {isBalancyLoading ? (
           <Loader size="sm" />
         ) : typeof holders === "number" ? (
-          <Text>{holders} addresses satisfy the requirements</Text>
+          <Text>{pubKeysAfterCheat.size} keys in ring</Text>
         ) : null}
 
-        <Collapse in={!!pubKeysSet}>
-          <Stack>
-            <Group>
-              <Text>Cheat?</Text>
-              <Checkbox
-                checked={isCheating}
-                onClick={({ target: { checked } }: any) => setIsCheating(checked)}
-              />
-            </Group>
-
-            {isCheating && pubKeysAfterCheat.size > 0 && (
-              <Text>{pubKeysAfterCheat.size} addresses after cheat</Text>
-            )}
-          </Stack>
-        </Collapse>
-      </Stack>
+        {!!pubKeysSet && (
+          <>
+            <Divider orientation="vertical" style={{ height: "30px" }} />
+            Cheat?
+            <Checkbox
+              checked={isCheating}
+              onClick={({ target: { checked } }: any) => setIsCheating(checked)}
+            />
+          </>
+        )}
+      </Group>
     </>
   )
 }

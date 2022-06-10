@@ -1,16 +1,7 @@
-import {
-  Alert,
-  Button,
-  Collapse,
-  Divider,
-  Group,
-  Stack,
-  ThemeIcon,
-} from "@mantine/core"
+import { Alert, Button, Collapse, Group, Stack } from "@mantine/core"
 import GuildSelector from "components/GuildSelector"
 import useGenerateProof from "hooks/useGenerateProof"
 import useVerifyProof from "hooks/useVerifyProof"
-import { Check, X } from "phosphor-react"
 import { useState } from "react"
 import { useConnect } from "wagmi"
 
@@ -46,7 +37,6 @@ const DemoPage = () => {
 
       <Group position="right">
         <Button
-          sx={{ width: "min-content" }}
           loading={isProofGenerating}
           onClick={() =>
             onGenerateProof({
@@ -59,36 +49,22 @@ const DemoPage = () => {
         >
           {(isProofGenerating && "Generating proof") || "Generate proof"}
         </Button>
+
+        <Collapse in={!!proof}>
+          <Button
+            loading={isVerifyProofLoading}
+            onClick={() => onVerifyProofSubmit({ proof, ring })}
+            variant="outline"
+            color={
+              (typeof verifyProofResult === "boolean" &&
+                ((verifyProofResult && "green") || "red")) ||
+              undefined
+            }
+          >
+            {(isVerifyProofLoading && "Verifying") || "Verify proof"}
+          </Button>
+        </Collapse>
       </Group>
-
-      <Collapse in={!!proof}>
-        <Stack>
-          <Divider />
-
-          <Group>
-            <Button
-              sx={{ width: "min-content" }}
-              loading={isVerifyProofLoading}
-              onClick={() => onVerifyProofSubmit({ proof, ring })}
-              size="xs"
-              variant="outline"
-            >
-              {(isVerifyProofLoading && "Verifying") || "Verify proof"}
-            </Button>
-
-            {typeof verifyProofResult === "boolean" && !isVerifyProofLoading && (
-              <ThemeIcon
-                color={(verifyProofResult && "green") || "red"}
-                variant="light"
-                size="lg"
-                sx={{ borderRadius: "100%" }}
-              >
-                {(verifyProofResult && <Check />) || <X />}
-              </ThemeIcon>
-            )}
-          </Group>
-        </Stack>
-      </Collapse>
     </Stack>
   )
 }
