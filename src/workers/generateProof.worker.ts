@@ -1,7 +1,7 @@
 import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
 
 export type Input = {
-  main: { userPubKey: string; ring: string[]; guildId: number }
+  main: { ring: string[]; guildId: number }
   signature: string
 }
 
@@ -15,12 +15,9 @@ addEventListener("message", (event) => {
 
   console.group("[WORKER - generateProof]")
 
-  const { userPubKey, ring, guildId } = event.data.data as Input["main"]
+  const { ring, guildId } = event.data.data as Input["main"]
 
-  // Small cheat here, if the address is not in the ring, we would get -1
-  const index = Math.abs(ring.findIndex((ringItem) => ringItem === userPubKey))
-
-  console.log("inputs:", { userPubKey, ring, index, guildId })
+  console.log("inputs:", { ring, guildId })
 
   // eslint-disable-next-line import/no-extraneous-dependencies
   import("tom256")
@@ -47,15 +44,15 @@ addEventListener("message", (event) => {
 
       if (signature === undefined) return
 
+      const pubkey = recoverPublicKey(msgHash, signature).slice(2)
+
+      const index = Math.abs(ring.findIndex((ringItem) => ringItem === pubkey))
+
+      console.log("idnex of signer:", index)
+
       console.log("signature:", signature)
 
-      const proofInput = {
-        msgHash,
-        pubkey: recoverPublicKey(msgHash, signature).slice(2),
-        signature,
-        index,
-        guildId,
-      }
+      const proofInput = { msgHash, pubkey, signature, index, guildId }
       console.log("proofInput:", { input: proofInput, ring })
 
       const proof = generateProof(proofInput, ring)

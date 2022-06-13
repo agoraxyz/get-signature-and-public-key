@@ -1,8 +1,8 @@
-import { Button } from "@mantine/core"
+import { Button, Loader, Text } from "@mantine/core"
 import useGenerateProof from "hooks/useGenerateProof"
 import { useEffect } from "react"
 
-const GenerateProofButton = ({ userPubKey, ring, guild, setProof }) => {
+const GenerateProofButton = ({ ring, guild, setProof, isBalancyLoading }) => {
   const {
     onSubmit: onGenerateProof,
     isLoading: isProofGenerating,
@@ -12,19 +12,25 @@ const GenerateProofButton = ({ userPubKey, ring, guild, setProof }) => {
   useEffect(() => setProof(proof), [proof])
 
   return (
-    <Button
-      loading={isProofGenerating}
-      onClick={() =>
-        onGenerateProof({
-          userPubKey,
-          ring,
-          guildId: guild?.id?.toString(),
-        })
-      }
-      disabled={!ring}
-    >
-      {(isProofGenerating && "Generating proof") || "Generate proof"}
-    </Button>
+    <>
+      {isBalancyLoading ? (
+        <Loader size="sm" />
+      ) : typeof ring?.length === "number" ? (
+        <Text>{ring.length} keys in ring</Text>
+      ) : null}
+      <Button
+        loading={isProofGenerating}
+        onClick={() =>
+          onGenerateProof({
+            ring,
+            guildId: guild?.id?.toString(),
+          })
+        }
+        disabled={!ring}
+      >
+        {(isProofGenerating && "Generating proof") || "Generate proof"}
+      </Button>
+    </>
   )
 }
 

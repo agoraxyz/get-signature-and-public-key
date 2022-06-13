@@ -2,6 +2,7 @@ import { Alert, Group, Stack } from "@mantine/core"
 import GenerateProofButton from "components/GenerateProofButton"
 import GuildSelector from "components/GuildSelector"
 import VerifyButton from "components/VerifyButton"
+import useBalancy from "hooks/useBalancy"
 import { useState } from "react"
 import { useConnect } from "wagmi"
 
@@ -9,16 +10,17 @@ const DemoPage = () => {
   const { isConnected } = useConnect()
 
   const [proof, setProof] = useState()
-  const [ring, setRing] = useState<string[]>()
-  const [userPubKey, setUserPubKey] = useState<string>()
   const [guild, setGuild] = useState<any>()
-  const [balancyResponse, setBalancyResponse] = useState<{
-    Pubkeys: string[]
-    Hash: string
-    Nonce: string
-    Signature: string
-    Timestamp: number
-  }>()
+  const [role, setRole] = useState<any>()
+
+  const {
+    Pubkeys,
+    isLoading: isBalancyLoading,
+    Hash,
+    Nonce,
+    Signature,
+    Timestamp,
+  } = useBalancy<"sign">(role?.requirements, role?.logic, "sign")
 
   if (!isConnected) {
     return (
@@ -30,11 +32,16 @@ const DemoPage = () => {
 
   return (
     <Stack>
-      <GuildSelector {...{ setGuild, setRing, setUserPubKey, setBalancyResponse }} />
+      <GuildSelector {...{ setGuild, setRole }} />
 
       <Group position="right">
-        <GenerateProofButton {...{ ring, userPubKey, guild, setProof }} />
-        <VerifyButton Proof={proof} {...balancyResponse} />
+        <GenerateProofButton
+          {...{ ring: Pubkeys, guild, setProof, isBalancyLoading }}
+        />
+        <VerifyButton
+          Proof={proof}
+          {...{ Hash, Nonce, Signature, Timestamp, Pubkeys }}
+        />
       </Group>
     </Stack>
   )
