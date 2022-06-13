@@ -22,7 +22,8 @@ addEventListener("message", (event) => {
 
   console.log("inputs:", { userPubKey, ring, index, guildId })
 
-  import("zk-wasm")
+  // eslint-disable-next-line import/no-extraneous-dependencies
+  import("tom256")
     .then(async ({ generateProof }) => {
       const msgHash = keccak256(toUtf8Bytes(`#zkp/join.guild.xyz/${guildId}`))
       console.log("msgHash:", msgHash)

@@ -13,7 +13,8 @@ addEventListener("message", (event) => {
 
   const { proof, ring } = event.data.data as Input["main"]
 
-  import("zk-wasm")
+  // eslint-disable-next-line import/no-extraneous-dependencies
+  import("tom256")
     .then(async ({ verifyProof }) => {
       try {
         console.log("inputs: ", { proof, ring })
