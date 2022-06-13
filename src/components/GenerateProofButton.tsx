@@ -2,13 +2,7 @@ import { Button, Loader, Text } from "@mantine/core"
 import useGenerateProof from "hooks/useGenerateProof"
 import { useEffect } from "react"
 
-const GenerateProofButton = ({
-  ring,
-  guild,
-  setProof,
-  isBalancyLoading,
-  isRoleLoading,
-}) => {
+const GenerateProofButton = ({ ring, guild, setProof, isBalancyLoading, role }) => {
   const {
     onSubmit: onGenerateProof,
     isLoading: isProofGenerating,
@@ -19,7 +13,7 @@ const GenerateProofButton = ({
 
   return (
     <>
-      {isBalancyLoading || isRoleLoading || (!isRoleLoading && !ring) ? (
+      {isBalancyLoading || role === null || (!!role && !ring) ? (
         <Loader size="sm" />
       ) : typeof ring?.length === "number" ? (
         <Text>{ring.length} keys in ring</Text>
