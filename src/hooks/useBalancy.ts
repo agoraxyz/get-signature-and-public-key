@@ -10,7 +10,7 @@ const fetchHolders = (
   requirements: any,
   mode: keyof BalancyResponse
 ) =>
-  fetcher(`${process.env.NEXT_PUBLIC_BALANCY_API}/${mode}`, {
+  fetcher(`/api/balancy/${mode}`, {
     body: {
       logic,
       requirements,
