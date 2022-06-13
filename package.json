@@ -25,6 +25,7 @@
     "react": "18.1.0",
     "react-dom": "18.1.0",
     "swr": "^1.3.0",
+    "tom256": "github:agoraxyz/agora-wasm-hub#guild-zk@main",
     "wagmi": "^0.3.2"
   },
   "devDependencies": {
