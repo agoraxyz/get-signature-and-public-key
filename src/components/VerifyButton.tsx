@@ -1,11 +1,8 @@
 import { Button, Collapse } from "@mantine/core"
 import useVerify from "hooks/useVerify"
-import { useEffect } from "react"
 
 const VerifyButton = ({ Proof, Hash, Nonce, Pubkeys, Signature, Timestamp }) => {
   const { isLoading, onSubmit, response } = useVerify()
-
-  useEffect(() => console.log(response), [response])
 
   return (
     <Collapse in={!!Proof}>

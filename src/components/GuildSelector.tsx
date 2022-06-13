@@ -17,8 +17,9 @@ const GuildSelector = ({ setGuild, setRole }) => {
   )
 
   const { onSubmit: onFetchRole } = useSubmit(
-    (roleId) =>
-      fetcher(`/role/${roleId}`).then((r) =>
+    (roleId) => {
+      setRole(null)
+      return fetcher(`/role/${roleId}`).then((r) =>
         Promise.all(
           r.requirements.map((req) =>
             req.type === "ERC20"
@@ -35,8 +36,9 @@ const GuildSelector = ({ setGuild, setRole }) => {
           })),
           logic: r.logic,
         }))
-      ),
-    { onSuccess: (r) => setRole(r) }
+      )
+    },
+    { onSuccess: (r) => setRole(r), onError: () => setRole(undefined) }
   )
 
   return (

@@ -36,7 +36,9 @@ const DemoPage = () => {
 
       <Group position="right">
         <GenerateProofButton
-          {...{ ring: Pubkeys, guild, setProof, isBalancyLoading }}
+          isRoleLoading={role === null}
+          ring={Pubkeys}
+          {...{ guild, setProof, isBalancyLoading }}
         />
         <VerifyButton
           Proof={proof}
