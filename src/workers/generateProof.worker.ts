@@ -51,9 +51,12 @@ addEventListener("message", (event) => {
 
       if (signature === undefined) return
 
-      const pubkey = recoverPublicKey(arrayify(hashMessage(msgHash)), signature)
+      const pubkey = recoverPublicKey(
+        arrayify(hashMessage(msgHash)),
+        signature
+      ).slice(2)
 
-      const recoveredAddress = computeAddress(pubkey)
+      const recoveredAddress = computeAddress(`0x${pubkey}`)
 
       console.log("recoveredAddress", recoveredAddress)
 
