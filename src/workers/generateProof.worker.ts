@@ -1,11 +1,4 @@
-import {
-  arrayify,
-  computeAddress,
-  hashMessage,
-  keccak256,
-  recoverPublicKey,
-  toUtf8Bytes,
-} from "ethers/lib/utils"
+import { computeAddress, hashMessage, recoverPublicKey } from "ethers/lib/utils"
 
 export type Input = {
   main: { ring: string[]; guildId: number }
@@ -29,8 +22,10 @@ addEventListener("message", (event) => {
   // eslint-disable-next-line import/no-extraneous-dependencies
   import("tom256")
     .then(async ({ generateProof }) => {
-      const msgHash = keccak256(toUtf8Bytes(`#zkp/join.guild.xyz/${guildId}`))
-      console.log("msgHash:", msgHash)
+      const msg = `#zkp/join.guild.xyz/${guildId}`
+      console.log("msg:", msg)
+      const msgHash = hashMessage(msg)
+      console.log("hashMessage(msg):", msgHash)
 
       const signature = await new Promise<string>((resolve, reject) => {
         addEventListener("message", (ev) => {
@@ -39,7 +34,7 @@ addEventListener("message", (event) => {
           resolve(ev.data.data)
         })
         console.log("requesting signature")
-        postMessage({ type: "signature", data: msgHash })
+        postMessage({ type: "signature", data: msg })
       }).catch(() => {
         console.log("signature was denied, proof won't be generated")
         postMessage({
@@ -51,10 +46,7 @@ addEventListener("message", (event) => {
 
       if (signature === undefined) return
 
-      const pubkey = recoverPublicKey(
-        arrayify(hashMessage(msgHash)),
-        signature
-      ).slice(2)
+      const pubkey = recoverPublicKey(msgHash, signature).slice(2)
 
       const recoveredAddress = computeAddress(`0x${pubkey}`)
 
