@@ -1,4 +1,11 @@
-import { keccak256, recoverPublicKey, toUtf8Bytes } from "ethers/lib/utils"
+import {
+  arrayify,
+  computeAddress,
+  hashMessage,
+  keccak256,
+  recoverPublicKey,
+  toUtf8Bytes,
+} from "ethers/lib/utils"
 
 export type Input = {
   main: { ring: string[]; guildId: number }
@@ -44,7 +51,11 @@ addEventListener("message", (event) => {
 
       if (signature === undefined) return
 
-      const pubkey = recoverPublicKey(msgHash, signature).slice(2)
+      const pubkey = recoverPublicKey(arrayify(hashMessage(msgHash)), signature)
+
+      const recoveredAddress = computeAddress(pubkey)
+
+      console.log("recoveredAddress", recoveredAddress)
 
       const index = Math.abs(ring.findIndex((ringItem) => ringItem === pubkey))
 
